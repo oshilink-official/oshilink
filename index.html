@@ -2513,7 +2513,7 @@
   function safeImgSrc(v){
     var s = String(v == null ? "" : v).trim();
     if(!s) return "";
-    if(/["'<>\\s]/.test(s)) return "";
+    if(/["'<>\s]/.test(s)) return "";
     if(/^data:image\/[a-z0-9.+-]+;base64,[a-z0-9+/=]+$/i.test(s)) return s;
     if(/^https?:\/\/[^\s"'<>]+$/i.test(s)) return s;
     return "";
