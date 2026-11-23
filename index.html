@@ -2169,7 +2169,8 @@
   <section class="fcard legal-card" aria-label="プレミアムプランについて">
     <p class="legal-lead">プレミアムプランは、推しLinkをもっと自由に楽しむための有料プランです。</p>
 
-    <div class="premium-price">
+    <!-- プレミアムは後からアップデートで追加するため、価格ブロックは一時非表示（2026-11-23 彼女の決定）。販売開始時にこの style を外すだけで復活できる -->
+    <div class="premium-price" style="display:none">
       <div class="pp-label">プレミアムプラン</div>
       <div class="pp-amount">買い切り 300円<small>（税込）</small></div>
       <p class="pp-note">一度購入すれば、月額料金などの追加の定期料金はかかりません。<br />購入済みの方は、追加料金なしでそのまま使い続けることができます。</p>
@@ -2193,7 +2194,8 @@
       </div>
     </div>
 
-    <div class="legal-sec">
+    <!-- プレミアムは後からアップデートで追加するため、「ご購入について」は一時非表示（2026-11-23 彼女の決定）。販売開始時にこの style を外すだけで復活できる -->
+    <div class="legal-sec" style="display:none">
       <h3>ご購入について</h3>
       <p>プレミアムプランは買い切り300円（税込）です。一度購入すれば、月額料金などの追加の定期料金はかかりません。</p>
       <p>お支払い方法や返金・キャンセルに関する条件などの販売条件は、<button type="button" class="legal-inline-link" data-legal-nav="tokushoView">特定商取引法に基づく表記</button>のページをご覧ください。有料プランの扱いについては、<button type="button" class="legal-inline-link" data-legal-nav="termsView">利用規約</button>の「有料プラン（プレミアムプラン）について」もあわせてご覧ください。</p>
@@ -2464,7 +2466,8 @@
   </nav>
 </footer>
 
-<div class="modal-bg" id="premiumModal" role="dialog" aria-modal="true" aria-label="プレミアムプランのご案内">
+<!-- プレミアムは後からアップデートで追加するため、上限到達時の案内モーダルは一時非表示（2026-11-23 彼女の決定）。inline style が .modal-bg.open より優先されるため、open クラスが付いても表示されない。販売開始時にこの style を外すだけで復活できる -->
+<div class="modal-bg" id="premiumModal" role="dialog" aria-modal="true" aria-label="プレミアムプランのご案内" style="display:none">
   <div class="modal">
     <button type="button" class="btn-ghost-sm m-close" data-close-modal>閉じる</button>
     <h2>プレミアムプランのご案内</h2>
