@@ -440,6 +440,22 @@
   .pv-album .album-card-oshi{color:#d93d92}
   .pv-album .album-buy a{color:#d93d92; border-color:#d93d92}
   .pv-album-note{margin:4px 0 2px; font-size:11px; color:#8a6478; line-height:1.7}
+  /* profile page ad slots (top / bottom): built by
+     profileAdSlotHtml() with a PR head, like the other ad slots.
+     A white card of its own (same reasoning as .pv-album) so it
+     stays readable on every profile design, with a softer border
+     than the album shelf to stay unobtrusive. Until a network
+     tag is placed in the slot, it carries an affiliate banner
+     built from that profile's own songs / name. */
+  .pv-ad{margin:14px 14px 4px; background:#fff; color:#3a1026; border:1.5px solid #e8c9da; border-radius:16px; box-shadow:0 8px 18px rgba(62,20,42,.07); padding:12px 12px 12px; text-align:left}
+  .pv-ad .top-ad-head{margin-bottom:8px}
+  .pv-ad .top-ad-label{color:#6b4356}
+  .pv-ad .pr-badge{background:#e563ac}
+  .pv-ad .ad-slot{min-height:0; border:none; background:transparent}
+  .pv-ad .ad-aff{padding:2px}
+  .pv-ad .ad-aff-artist{color:#6b4356}
+  .pv-ad .ad-aff-oshi{color:#d93d92}
+  .pv-ad .album-buy a, .pv-ad .ad-aff-buy a{color:#d93d92; border-color:#d93d92}
   /* mypage favorites: the affiliate area — under the empty
      message when there are no favorites (one placement), or
      above and below the card grid when there are favorites.
@@ -1406,7 +1422,12 @@
           <p class="notice" style="margin-top:12px">投稿する写真は、撮影が許可されていることに加えて、インターネット上への公開も許可されているか確認してください。撮影OKと公開OKは別の許可です。自分が権利を持っている、または許可を得た画像だけを投稿してください。</p>
         </section>
 
-        <section class="fcard" aria-label="グッズ・購入リンク">
+        <!-- グッズ・購入リンクは撤去（2026-11-23 彼女の決定：ユーザーが貼った
+             URLがそのまま出て運営にアフィリエイト料が入らないため）。
+             入力欄は display:none で隠してあるだけで、データ項目（state.goods）
+             と描画コードは既存プロフィール互換のため残してある。復活させる
+             場合はこの style と、GOODS_ENABLED=false の2か所を戻す。 -->
+        <section class="fcard" aria-label="グッズ・購入リンク" style="display:none">
           <h2><span class="step">STEP 8</span>グッズ・購入リンク</h2>
           <p class="sub">CDや写真集、公式グッズなどを紹介できます。アフィリエイトリンクの場合はスイッチをONにしてください（ページに「広告」と表示されます）。</p>
           <p class="goods-lead">気になるものがあったら、少しずつ集めてみよう。</p>
@@ -1416,7 +1437,7 @@
         </section>
 
         <section class="fcard" aria-label="推しの公式SNS・外部リンク">
-          <h2><span class="step">STEP 9</span>推しの公式SNS・外部リンク</h2>
+          <h2><span class="step">STEP 8</span>推しの公式SNS・外部リンク</h2>
           <p class="sub">入力したものだけ、ページのアイコンと最後のリンク一覧に表示されます。Xなどはアカウント名だけでもOKです。</p>
           <div id="snsList"></div>
         </section>
@@ -2212,8 +2233,8 @@
     <p class="legal-lead">推しLinkに掲載される広告と、外部サービスから取得している情報について説明します。</p>
     <div class="legal-sec">
       <h3><span class="legal-no">1.</span>アフィリエイト広告について</h3>
-      <p>本サービスは、Amazonアソシエイト・プログラムおよび楽天アフィリエイトのアフィリエイトプログラムに参加しています。プロフィールの「好きな曲」にある「Amazonで探す」「楽天で探す」などの購入リンクや、トップページの「好きな曲のアルバム」、各プロフィールの一番下にある「この推しのアルバム」、マイページの「お気に入り」が空のときに表示されるアルバム棚の購入リンク、「グッズ・購入リンク」に掲載されるリンクの一部はアフィリエイト広告です。リンクを経由して商品が購入されると、運営に紹介料が入る場合があります。</p>
-      <p>トップページや検索結果、お知らせなどのページには、広告ネットワークから配信される広告の枠も設置しています（PR表記付き）。この広告枠には、アフィリエイトのバナーが表示される場合もあります。広告はすべてページの中に固定して置く形式だけで、画面に被さったりスクロールに追従したりする形式の広告は使用していません。</p>
+      <p>本サービスは、Amazonアソシエイト・プログラムおよび楽天アフィリエイトのアフィリエイトプログラムに参加しています。プロフィールの「好きな曲」にある「Amazonで探す」「楽天で探す」などの購入リンクや、トップページの「好きな曲のアルバム」、各プロフィールの一番下にある「この推しのアルバム」、マイページの「お気に入り」が空のときに表示されるアルバム棚の購入リンク、各プロフィールの上下にある広告枠に表示されるバナーのリンクはアフィリエイト広告です。リンクを経由して商品が購入されると、運営に紹介料が入る場合があります。</p>
+      <p>トップページや検索結果、お知らせ、プロフィールなどのページには、広告ネットワークから配信される広告の枠も設置しています（PR表記付き）。この広告枠には、アフィリエイトのバナーが表示される場合もあります。広告はすべてページの中に固定して置く形式だけで、画面に被さったりスクロールに追従したりする形式の広告は使用していません。</p>
       <p>商品の価格・在庫・配送などの条件は変動します。購入の際は、リンク先の販売ページで最新の内容を確認してください。</p>
     </div>
     <div class="legal-sec">
@@ -3169,6 +3190,11 @@
   }
 
   /* ---------- dynamic entries: videos / goods / records ---------- */
+  /* グッズ・購入リンクは撤去済み（2026-11-23 彼女の決定）。データ項目と
+     コードは既存プロフィール互換のため残し、このフラグで入力欄・表示・
+     保存時チェックをすべて止めている。復活させる場合は true に戻し、
+     フォーム側の display:none も外す。 */
+  var GOODS_ENABLED = false;
   var GOODS_CATS = ["CD","DVD","Blu-ray","写真集","書籍","雑誌","公式グッズ","関連商品","配信・音楽サービス"];
   function renderVideos(){
     var html = "";
@@ -3693,9 +3719,9 @@
     });
     if(rHtml) html += secHead(IC.camera, "推し活記録") + rHtml + '</div>';
 
-    /* goods */
+    /* goods （撤去済み：GOODS_ENABLED=false の間は表示しない） */
     var gHtml = "";
-    state.goods.forEach(function(g){
+    if(GOODS_ENABLED) state.goods.forEach(function(g){
       if(!g.name.trim()) return;
       var u = normUrl(g.url);
       gHtml += '<div class="pv-goods"><div class="g-img">' + (safeImgSrc(g.img) ? '<img src="' + esc(safeImgSrc(g.img)) + '" alt="" />' : esc(g.cat)) + '</div><div>'
@@ -7626,6 +7652,9 @@
     });
     if(snsHtml) html += '<div class="pv-sns">' + snsHtml + '</div>';
     html += '</div>';
+    /* 広告枠（上部）: ヒーローの直下、プロフィール本体の前。
+       中身は profileAdSlotHtml がこのプロフィールの曲／名前で作る。 */
+    html += profileAdSlotHtml(data, readAffiliateSettings(), "top");
     /* profile table */
     var rows = "";
     if(b) rows += '<tr><th>生年月日</th><td>' + esc(birthText(b)) + '</td></tr>';
@@ -7713,10 +7742,10 @@
         + '</div>';
     });
     if(rHtml) html += secHead(IC.camera, "推し活記録") + rHtml + '</div>';
-    /* goods */
+    /* goods （撤去済み：GOODS_ENABLED=false の間は表示しない） */
     var goods = Array.isArray(data.goods) ? data.goods : [];
     var gHtml = "";
-    goods.forEach(function(g){
+    if(GOODS_ENABLED) goods.forEach(function(g){
       if(!g || !String(g.name || "").trim()) return;
       var u = normUrl(g.url);
       gHtml += '<div class="pv-goods"><div class="g-img">' + (safeImgSrc(g.img) ? '<img src="' + esc(safeImgSrc(g.img)) + '" alt="" />' : esc(g.cat)) + '</div><div>'
@@ -7743,6 +7772,9 @@
         + '<p class="pv-album-note">' + esc(albumNoteText(affSettings)) + '</p>'
         + '</section>';
     }
+    /* 広告枠（下部）: ページの一番最後。棚が全曲の横スクロール
+       なのに対して、こちらは1曲だけのバナー（棚とは役割分担）。 */
+    html += profileAdSlotHtml(data, affSettings, "bottom");
     return html;
   }
   /* 汎用JSON形式（将来の公開プロフィール）の項目から組み立てる版:
@@ -8617,6 +8649,55 @@
       : "※リンク先は各ストアの検索結果です。マイページでアフィリエイトIDを設定すると、購入リンクがID入りのリンクになります。";
   }
 
+  /* ---------- profile page ad slots (top / bottom) ----------
+     推しプロフィール（公開ページ・検索のプロフィール表示）の上下に
+     置く広告枠。枠には data-ad-slot="profile-top" / "profile-bottom"
+     が付いていて、広告ネットワークの審査が通ったら他の枠と同じく
+     タグを差し込むだけで配信が始まる形にしてある。タグが入るまで
+     の間は、そのプロフィール自身の「好きな曲」から作った
+     アフィリエイトバナー（運営者のID入り）を中身として表示する。
+     曲がない場合は推しの名前でストア検索するバナーに切り替える。
+     上部は1曲目、下部は2曲目（なければ1曲目）を使い、最下部の
+     「この推しのアルバム」棚（全曲の横スクロール）とは役割を分ける。
+     中身はプロフィールごとに作るので data-ad-own を付け、
+     renderAdSlots（端末内プロフィールの曲で埋める処理）には
+     触らせない。 */
+  function profileAdSlotHtml(data, aff, position){
+    var songs = (Array.isArray(data.songs) ? data.songs : []).filter(function(s){
+      return s && String(s.title || "").trim();
+    });
+    var name = String(((data.fields || {})["f-name"]) || "").trim();
+    var inner = "";
+    if(songs.length){
+      var s = (position === "bottom" && songs.length > 1) ? songs[1] : songs[0];
+      var urls = albumBuyUrls(s, aff);
+      inner = '<div class="ad-aff">' + songTileHtml(s)
+        + '<div class="ad-aff-main"><p class="ad-aff-title">' + esc(s.title) + '</p>'
+        + (String(s.artist || "").trim() ? '<p class="ad-aff-artist">' + esc(s.artist) + '</p>' : '')
+        + (name ? '<p class="ad-aff-oshi">' + esc(name) + 'の好きな曲</p>' : '')
+        + '</div>'
+        + '<div class="ad-aff-buy">'
+        + '<a href="' + esc(urls.amazon) + '" target="_blank" rel="noopener noreferrer sponsored">Amazonで見る</a>'
+        + '<a href="' + esc(urls.rakuten) + '" target="_blank" rel="noopener noreferrer sponsored">楽天で見る</a>'
+        + '</div></div>';
+    } else if(name){
+      var aUrl = aff.amazonTag ? amazonSongSearchUrl(name, aff.amazonTag) : "https://www.amazon.co.jp/s?k=" + encodeURIComponent(name);
+      var rUrl = aff.rakutenId ? rakutenSongSearchUrl(name, aff.rakutenId) : "https://search.rakuten.co.jp/search/mall/" + encodeURIComponent(name) + "/";
+      inner = '<div class="ad-aff">'
+        + '<div class="ad-aff-main"><p class="ad-aff-title">' + esc(name) + 'の関連グッズ・CDを探す</p>'
+        + '<p class="ad-aff-artist">ストアで推しの名前を検索できます</p></div>'
+        + '<div class="ad-aff-buy">'
+        + '<a href="' + esc(aUrl) + '" target="_blank" rel="noopener noreferrer sponsored">Amazonで見る</a>'
+        + '<a href="' + esc(rUrl) + '" target="_blank" rel="noopener noreferrer sponsored">楽天で見る</a>'
+        + '</div></div>';
+    } else {
+      inner = '<p class="ad-slot-ph">広告</p>';
+    }
+    return '<div class="pv-ad" aria-label="広告">'
+      + '<div class="top-ad-head"><span class="pr-badge">PR</span><span class="top-ad-label">広告</span></div>'
+      + '<div class="ad-slot" data-ad-slot="profile-' + position + '" data-ad-own="1">' + inner + '</div></div>';
+  }
+
   /* ---------- top page: album shelf (affiliate) ----------
      棚自体にPRバッジを付け、末尾の注意書きも一緒に出す。
      曲が1つもない間は棚ごと隠す（見本の曲は出さない）。 */
@@ -8653,6 +8734,9 @@
     var aff = readAffiliateSettings();
     slots.forEach(function(slot, i){
       if(slot.querySelector("ins, iframe")) return;
+      /* プロフィールページの広告枠は、そのプロフィール専用の
+         バナーが入っているので上書きしない。 */
+      if(slot.hasAttribute("data-ad-own")) return;
       var it = items[i % items.length];
       var s = it.song;
       var urls = albumBuyUrls(s, aff);
@@ -9121,7 +9205,9 @@
     var pcb = $("rights-profile"); if(pcb) state.profileRights = !!pcb.checked;
     syncProfileRightsUI();
     if(state.profileImg && !state.profileRights) return { target: $("rightsProfileWrap") || pcb, msg: "プロフィール画像の権利・許可を確認してから保存してください" };
-    for(var gi = 0; gi < state.goods.length; gi++){
+    /* グッズ欄は撤去済みのため、グッズ画像の権利チェックは行わない
+       （入力欄が見えないのに保存だけ止まる事故を防ぐ）。 */
+    if(GOODS_ENABLED) for(var gi = 0; gi < state.goods.length; gi++){
       if(state.goods[gi] && state.goods[gi].img && !state.goods[gi].rights){
         return { target: document.querySelector('[data-goods-rights="' + gi + '"]'), msg: "商品" + (gi + 1) + "の画像の権利・許可を確認してから保存してください" };
       }
