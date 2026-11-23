@@ -2902,9 +2902,10 @@
 
   /* ---------- songs ---------- */
   /* 曲の候補は Apple の iTunes Search API（日本のストア）から取得する。
-     APIキーは不要。取得は fetch ではなく JSONP（scriptタグ）で行う。
-     このページはサンドボックス内 iframe で表示されるため外部への
-     fetch が遮断される環境があり、その場合でも候補を出せるようにするため。
+     APIキーは不要。取得は (1) fetch（CORS許可済み）→ (2) JSONP
+     （scriptタグ）→ (3) Deezer の JSONP の順に試し、どれか1つでも
+     通れば候補を出す。JSONP だけだと端末やブラウザ内ブラウザの
+     制限で script が読み込めず全滅することがあったための多段化。
      選んだ曲は曲名・アーティスト名に加えてジャケット画像と
      Apple Music へのリンクも一緒に保存する。 */
   var songResultsCache = [];
@@ -3137,6 +3138,58 @@
     setTimeout(function(){ $("songQuery").focus(); }, 50);
   }
   var songJsonpSeq = 0;
+  function songItunesUrl(q, cbName){
+    var url = "https://itunes.apple.com/search?term=" + encodeURIComponent(q)
+      + "&country=JP&media=music&entity=song&limit=25&lang=ja_jp";
+    return cbName ? url + "&callback=" + cbName : url;
+  }
+  /* fetch で JSON を取る（iTunes Search API は CORS 許可済み）。
+     JSONP（scriptタグ）が端末やブラウザ内ブラウザの制限で
+     読み込めない環境でも候補を出せるよう、こちらを第一手段にする。 */
+  function songFetchJson(url, timeoutMs){
+    return new Promise(function(resolve, reject){
+      var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+      var to = setTimeout(function(){ if(ctrl) ctrl.abort(); reject(new Error("timeout")); }, timeoutMs || 8000);
+      fetch(url, ctrl ? { signal: ctrl.signal } : {})
+        .then(function(r){ if(!r.ok) throw new Error("http " + r.status); return r.json(); })
+        .then(function(d){ clearTimeout(to); resolve(d); })
+        .catch(function(e){ clearTimeout(to); reject(e); });
+    });
+  }
+  /* JSONP で JSON を取る（fetch が遮断される環境向けの予備手段） */
+  function songJsonp(url, timeoutMs){
+    return new Promise(function(resolve, reject){
+      var cbName = "__songSearchCb" + (++songJsonpSeq);
+      var script = document.createElement("script");
+      var done = false;
+      var timer = setTimeout(function(){ finish(null, new Error("timeout")); }, timeoutMs || 10000);
+      function finish(data, err){
+        if(done) return;
+        done = true;
+        clearTimeout(timer);
+        try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
+        if(script.parentNode) script.parentNode.removeChild(script);
+        if(err) reject(err); else resolve(data);
+      }
+      window[cbName] = function(data){ finish(data, null); };
+      script.onerror = function(){ finish(null, new Error("load error")); };
+      script.src = url + (url.indexOf("?") >= 0 ? "&" : "?") + "callback=" + cbName;
+      document.head.appendChild(script);
+    });
+  }
+  /* Deezer の検索結果を iTunes と同じ形にそろえる（最終フォールバック用） */
+  function songNormalizeDeezer(data){
+    var list = (data && data.data) || [];
+    return list.filter(function(t){ return t && t.title; }).map(function(t){
+      return {
+        trackName: t.title || "",
+        artistName: (t.artist && t.artist.name) || "",
+        collectionName: (t.album && t.album.title) || "",
+        artworkUrl100: (t.album && (t.album.cover_medium || t.album.cover)) || "",
+        trackViewUrl: t.link || ""
+      };
+    });
+  }
   function searchSongs(q){
     q = (q || "").trim();
     $("btnManualSong").hidden = !q;
@@ -3148,25 +3201,10 @@
     }
     $("songResults").innerHTML = '<p class="m-note">検索中…</p>';
     var seq = ++songSearchSeq;
-    var cbName = "__songSearchCb" + (++songJsonpSeq);
-    var url = "https://itunes.apple.com/search?term=" + encodeURIComponent(q)
-      + "&country=JP&media=music&entity=song&limit=25&lang=ja_jp&callback=" + cbName;
-    var script = document.createElement("script");
-    var done = false;
-    var timer = setTimeout(function(){ finish(null); }, 12000);
-    function finish(data){
-      if(done) return;
-      done = true;
-      clearTimeout(timer);
-      try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
-      if(script.parentNode) script.parentNode.removeChild(script);
-      if(seq !== songSearchSeq) return;
-      if(!data){
-        songResultsCache = [];
-        $("songResults").innerHTML = '<p class="m-note">検索できませんでした。通信環境を確認してもう一度お試しください。下のボタンから、入力した曲名でも登録できます。</p>';
-        return;
-      }
-      var list = (data && data.results) || [];
+    var responded = false; /* どこか1つでも応答が返れば「見つからない」扱いにする */
+    function alive(){ return seq === songSearchSeq; }
+    function renderList(list){
+      if(!alive()) return;
       songResultsCache = list;
       if(!list.length){
         $("songResults").innerHTML = '<p class="m-note">見つかりませんでした。下のボタンから、入力した曲名でそのまま登録できます。</p>';
@@ -3183,10 +3221,40 @@
       });
       $("songResults").innerHTML = html;
     }
-    window[cbName] = function(data){ finish(data); };
-    script.onerror = function(){ finish(null); };
-    script.src = url;
-    document.head.appendChild(script);
+    function renderFail(){
+      if(!alive()) return;
+      if(responded){ renderList([]); return; }
+      songResultsCache = [];
+      $("songResults").innerHTML = '<p class="m-note">検索できませんでした。通信環境を確認してもう一度お試しください。下のボタンから、入力した曲名でも登録できます。</p>';
+    }
+    /* 第1手段: iTunes を fetch で取得 */
+    function tryItunesFetch(){
+      songFetchJson(songItunesUrl(q), 8000).then(function(data){
+        if(!alive()) return;
+        responded = true;
+        var list = (data && data.results) || [];
+        if(list.length) renderList(list); else tryDeezer();
+      }).catch(function(){ if(alive()) tryItunesJsonp(); });
+    }
+    /* 第2手段: iTunes を JSONP で取得 */
+    function tryItunesJsonp(){
+      songJsonp(songItunesUrl(q, ""), 8000).then(function(data){
+        if(!alive()) return;
+        responded = true;
+        var list = (data && data.results) || [];
+        if(list.length) renderList(list); else tryDeezer();
+      }).catch(function(){ if(alive()) tryDeezer(); });
+    }
+    /* 第3手段: Deezer を JSONP で取得（Apple側が両方だめな場合の保険） */
+    function tryDeezer(){
+      var url = "https://api.deezer.com/search?q=" + encodeURIComponent(q) + "&limit=25&output=jsonp";
+      songJsonp(url, 7000).then(function(data){
+        if(!alive()) return;
+        responded = true;
+        renderList(songNormalizeDeezer(data));
+      }).catch(function(){ renderFail(); });
+    }
+    tryItunesFetch();
   }
 
   /* ---------- dynamic entries: videos / goods / records ---------- */
