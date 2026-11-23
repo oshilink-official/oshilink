@@ -2903,9 +2903,11 @@
   /* ---------- songs ---------- */
   /* 曲の候補は Apple の iTunes Search API（日本のストア）から取得する。
      APIキーは不要。取得は (1) fetch（CORS許可済み）→ (2) JSONP
-     （scriptタグ）→ (3) Deezer の JSONP の順に試し、どれか1つでも
-     通れば候補を出す。JSONP だけだと端末やブラウザ内ブラウザの
-     制限で script が読み込めず全滅することがあったための多段化。
+     （scriptタグ）の順に試し、どちらかで通れば候補を出す。
+     JSONP だけだと端末やブラウザ内ブラウザの制限で script が
+     読み込めず全滅することがあったための多段化。
+     ※Deezer はAPI規約が非商用寄りで収益化サイトではグレーのため
+     使わない（2026-11-24 本人の決定でフォールバックから除去）。
      選んだ曲は曲名・アーティスト名に加えてジャケット画像と
      Apple Music へのリンクも一緒に保存する。 */
   var songResultsCache = [];
@@ -3177,19 +3179,6 @@
       document.head.appendChild(script);
     });
   }
-  /* Deezer の検索結果を iTunes と同じ形にそろえる（最終フォールバック用） */
-  function songNormalizeDeezer(data){
-    var list = (data && data.data) || [];
-    return list.filter(function(t){ return t && t.title; }).map(function(t){
-      return {
-        trackName: t.title || "",
-        artistName: (t.artist && t.artist.name) || "",
-        collectionName: (t.album && t.album.title) || "",
-        artworkUrl100: (t.album && (t.album.cover_medium || t.album.cover)) || "",
-        trackViewUrl: t.link || ""
-      };
-    });
-  }
   function searchSongs(q){
     q = (q || "").trim();
     $("btnManualSong").hidden = !q;
@@ -3233,7 +3222,7 @@
         if(!alive()) return;
         responded = true;
         var list = (data && data.results) || [];
-        if(list.length) renderList(list); else tryDeezer();
+        renderList(list);
       }).catch(function(){ if(alive()) tryItunesJsonp(); });
     }
     /* 第2手段: iTunes を JSONP で取得 */
@@ -3242,16 +3231,7 @@
         if(!alive()) return;
         responded = true;
         var list = (data && data.results) || [];
-        if(list.length) renderList(list); else tryDeezer();
-      }).catch(function(){ if(alive()) tryDeezer(); });
-    }
-    /* 第3手段: Deezer を JSONP で取得（Apple側が両方だめな場合の保険） */
-    function tryDeezer(){
-      var url = "https://api.deezer.com/search?q=" + encodeURIComponent(q) + "&limit=25&output=jsonp";
-      songJsonp(url, 7000).then(function(data){
-        if(!alive()) return;
-        responded = true;
-        renderList(songNormalizeDeezer(data));
+        renderList(list);
       }).catch(function(){ renderFail(); });
     }
     tryItunesFetch();
