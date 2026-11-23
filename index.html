@@ -8698,6 +8698,29 @@
       + '<div class="ad-slot" data-ad-slot="profile-' + position + '" data-ad-own="1">' + inner + '</div></div>';
   }
 
+  /* ---------- ad slots: fallback banner ----------
+     端末に保存済みプロフィールが無い（または「好きな曲」が1つも
+     無い）訪問者向けの定番バナー。広告枠が「広告」とだけ書かれた
+     空枠に見えないよう、曲カードの代わりにこれを表示する。
+     リンクは運営者のアフィリエイトID入り（楽天はコード内蔵の
+     初期値があるので通常はID入りになる）。Amazon はタグが
+     設定されているときだけID入りで、無ければ通常の検索リンク。
+     検索語は推し活まわりの定番「推し活 グッズ」。 */
+  var AD_FALLBACK_QUERY = "推し活 グッズ";
+  function adFallbackBannerHtml(aff){
+    var aUrl = aff.amazonTag ? amazonSongSearchUrl(AD_FALLBACK_QUERY, aff.amazonTag)
+      : "https://www.amazon.co.jp/s?k=" + encodeURIComponent(AD_FALLBACK_QUERY);
+    var rUrl = aff.rakutenId ? rakutenSongSearchUrl(AD_FALLBACK_QUERY, aff.rakutenId)
+      : "https://search.rakuten.co.jp/search/mall/" + encodeURIComponent(AD_FALLBACK_QUERY) + "/";
+    return '<div class="ad-aff">'
+      + '<div class="ad-aff-main"><p class="ad-aff-title">推し活グッズを探す</p>'
+      + '<p class="ad-aff-artist">楽天市場・Amazonで「推し活 グッズ」を検索できます</p></div>'
+      + '<div class="ad-aff-buy">'
+      + '<a href="' + esc(aUrl) + '" target="_blank" rel="noopener noreferrer sponsored">Amazonで見る</a>'
+      + '<a href="' + esc(rUrl) + '" target="_blank" rel="noopener noreferrer sponsored">楽天で見る</a>'
+      + '</div></div>';
+  }
+
   /* ---------- top page: album shelf (affiliate) ----------
      棚自体にPRバッジを付け、末尾の注意書きも一緒に出す。
      曲が1つもない間は棚ごと隠す（見本の曲は出さない）。 */
@@ -8725,18 +8748,23 @@
      見出し（PRバッジ＋「広告」）が担う。広告はすべてページの
      流れの中に固定で置く形だけで、画面に被さって流れてくる
      追従・フローティング形式は使わない。ネットワークのタグ
-     （ins / iframe）が入っている枠には触らない。 */
+     （ins / iframe）が入っている枠には触らない。
+     曲が1つも無い場合は、空枠に見えないよう定番のフォールバック
+     バナー（adFallbackBannerHtml）を全枠に表示する。 */
   function renderAdSlots(){
     var slots = document.querySelectorAll(".ad-slot[data-ad-slot]");
     if(!slots.length) return;
     var items = collectShelfItems();
-    if(!items.length) return;
     var aff = readAffiliateSettings();
     slots.forEach(function(slot, i){
       if(slot.querySelector("ins, iframe")) return;
       /* プロフィールページの広告枠は、そのプロフィール専用の
          バナーが入っているので上書きしない。 */
       if(slot.hasAttribute("data-ad-own")) return;
+      if(!items.length){
+        slot.innerHTML = adFallbackBannerHtml(aff);
+        return;
+      }
       var it = items[i % items.length];
       var s = it.song;
       var urls = albumBuyUrls(s, aff);
@@ -8757,8 +8785,10 @@
      下に1か所だけ、お気に入りが1件以上あるときはカード一覧の
      上と下に1か所ずつ出す（空のときと重複させない）。
      保存済みプロフィールの「好きな曲」があればアルバム棚を、
-     曲データが無い場合はアフィリエイトバナー用の広告枠を出す
-     （曲が登録されれば renderAdSlots がバナーを差し込む）。
+     曲データが無い場合はアフィリエイトバナー用の広告枠を出す。
+     枠の中身は空枠に見えないよう定番のフォールバックバナーを
+     最初から入れておき、曲が登録されれば renderAdSlots が
+     曲カードに差し替える。
      slotKey は広告枠ごとに変え、枠ごとに違う曲が出るようにする。 */
   function favAffiliateHtml(slotKey, extraClass){
     var cls = "fav-aff" + (extraClass ? " " + extraClass : "");
@@ -8775,7 +8805,7 @@
         + '</section></div>';
     }
     return '<div class="' + cls + '"><div class="top-ad-head"><span class="pr-badge">PR</span><span class="top-ad-label">広告</span></div>'
-      + '<div class="ad-slot" data-ad-slot="mypage-favs-' + esc(slotKey) + '"><p class="ad-slot-ph">広告</p></div></div>';
+      + '<div class="ad-slot" data-ad-slot="mypage-favs-' + esc(slotKey) + '">' + adFallbackBannerHtml(readAffiliateSettings()) + '</div></div>';
   }
   function favEmptyAffiliateHtml(){
     return favAffiliateHtml("empty", "");
