@@ -600,6 +600,27 @@
   .img-thumb{flex:none; width:92px; height:92px; border-radius:18px; border:1.5px dashed var(--border); background:var(--surface-3); display:flex; align-items:center; justify-content:center; overflow:hidden; color:var(--faint)}
   .img-thumb img{width:100%; height:100%; object-fit:cover; display:block}
   .img-thumb svg{width:34px; height:34px}
+  /* ===== image cropper (写真の位置・拡大調整) ===== */
+  .crop-stage{position:relative; width:100%; max-width:340px; margin:0 auto; overflow:hidden; border-radius:16px; background:#241019; touch-action:none; user-select:none; -webkit-user-select:none; cursor:grab}
+  .crop-stage--round{border-radius:50%}
+  .crop-stage img{position:absolute; left:0; top:0; max-width:none; pointer-events:none; -webkit-user-drag:none}
+  .crop-stage:active{cursor:grabbing}
+  .crop-zoom-row{display:flex; align-items:center; gap:10px; margin:14px auto 4px; max-width:340px}
+  .crop-zoom-row span{font-size:12px; font-weight:900; color:var(--dim); flex:none}
+  .crop-zoom-row input[type="range"]{flex:1; accent-color:var(--pink)}
+  .crop-actions{display:flex; gap:10px; margin-top:14px}
+  .crop-actions .btn-save{flex:1}
+  .crop-actions .btn-ghost-sm{align-self:center}
+  /* ===== share page: 推しを選ぶ ===== */
+  .oshi-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+  @media (max-width:560px){ .oshi-grid{grid-template-columns:1fr} }
+  .oshi-card{display:flex; align-items:center; gap:11px; border:1.5px solid var(--border); background:var(--surface-3); border-radius:14px; padding:10px 12px; color:var(--text); cursor:pointer; text-align:left; font-family:inherit; width:100%}
+  .oshi-card[aria-pressed="true"]{border-color:var(--pink); background:var(--pink-soft)}
+  .oshi-card:focus-visible{outline:2px solid var(--purple); outline-offset:2px}
+  .oshi-thumb{flex:none; width:44px; height:44px; border-radius:12px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; color:var(--pink); font-size:19px; border:1px solid var(--border-soft)}
+  .oshi-thumb img{width:100%; height:100%; object-fit:cover; display:block}
+  .oshi-thumb svg{width:24px; height:24px}
+  .oshi-name{font-size:14px; font-weight:900; line-height:1.35; word-break:break-all}
   .btn-file{display:inline-flex; align-items:center; justify-content:center; border:1.5px solid var(--purple); color:var(--text); background:transparent; border-radius:999px; padding:9px 16px; font-weight:900; font-size:13.5px; min-height:42px; cursor:pointer}
   .btn-ghost-sm{background:transparent; border:1px solid var(--border); color:var(--dim); border-radius:999px; padding:6px 12px; font-size:12px; font-weight:700; min-height:34px}
   .mini-toggle{display:inline-flex; align-items:center; gap:8px; font-size:12.5px; font-weight:700; color:var(--dim); margin-top:8px; cursor:pointer}
@@ -1247,7 +1268,7 @@
               <div>
                 <label class="btn-file" for="f-photo">画像を選ぶ</label>
                 <input type="file" id="f-photo" accept="image/*" hidden />
-                <div><button type="button" class="btn-ghost-sm" id="btnPhotoClear" hidden>画像を削除</button></div>
+                <div><button type="button" class="btn-ghost-sm" id="btnPhotoAdjust" hidden>位置を調整</button> <button type="button" class="btn-ghost-sm" id="btnPhotoClear" hidden>画像を削除</button></div>
                 <p class="hint">選んだ画像はこの画面のプレビューにだけ表示されます。</p>
                 <p class="img-note">許可をとっている画像を使用してください</p>
                 <label class="rights-check" id="rightsProfileWrap"><input type="checkbox" id="rights-profile" /><span>この画像を使う権利・許可を確認しました<small>自分が権利を持っている、または権利者から公開の許可を得た画像です。画像を選んだ場合は、チェックしないと保存できません。</small></span></label>
@@ -1257,12 +1278,12 @@
           </div>
 
           <div class="field">
-            <label for="f-furigana">ふりがな</label>
-            <input type="text" id="f-furigana" autocomplete="off" />
-          </div>
-          <div class="field">
             <label for="f-name">名前</label>
             <input type="text" id="f-name" placeholder="推しの名前" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label for="f-furigana">ふりがな</label>
+            <input type="text" id="f-furigana" autocomplete="off" />
           </div>
 
           <div class="field">
@@ -1501,8 +1522,15 @@
     </div>
   </section>
 
+  <section class="fcard" aria-label="推しを選ぶ">
+    <h2><span class="step">STEP 1</span>推しを選ぶ</h2>
+    <p class="sub">誰の布教シートを作るか選んでください。選んだ推しプロフィールの内容が、下のステップに自動で反映されます。選ぶまでは何も入力されません。</p>
+    <div class="oshi-grid" id="spOshiList"></div>
+    <p class="hint" id="spOshiNote" style="margin-top:10px"></p>
+  </section>
+
   <section class="fcard" aria-label="サムネイルのデザインを選ぶ">
-    <h2><span class="step">STEP 1</span>サムネイルのデザインを選ぶ</h2>
+    <h2><span class="step">STEP 2</span>サムネイルのデザインを選ぶ</h2>
     <p class="sub">リンクを貼ったときに表示されるサムネイルのデザインです。タップで切り替わります。推しプロフィールのデザインとは別に選べます。</p>
     <div class="sp-design-grid">
       <div class="sp-design-card" id="spDesignSimpleBtn" role="button" tabindex="0" aria-pressed="true">
@@ -1521,7 +1549,7 @@
   </section>
 
   <section class="fcard" aria-label="サムネイルの色を選ぶ">
-    <h2><span class="step">STEP 2</span>サムネイルの色を選ぶ</h2>
+    <h2><span class="step">STEP 3</span>サムネイルの色を選ぶ</h2>
     <p class="sub">選んだ色は、名前の帯・枠・チェック柄などに反映されます。シンプルでは背景が選んだ色の淡い色に、ダークカラーでは背景も同じ色系統の深い色になります。推しプロフィールの色とは別に選べます。</p>
     <div class="field">
       <span class="flabel">無料カラー</span>
@@ -1538,8 +1566,8 @@
   </section>
 
   <section class="fcard" aria-label="内容の確認・入力">
-    <h2><span class="step">STEP 3</span>内容の確認・入力</h2>
-    <p class="sub">作成済みの推しプロフィールがあれば、その内容が自動で反映されます。変えたい項目は、ここでそのまま直せます。</p>
+    <h2><span class="step">STEP 4</span>内容の確認・入力</h2>
+    <p class="sub">STEP 1で選んだ推しプロフィールの内容が自動で反映されます。変えたい項目は、ここでそのまま直せます。</p>
     <div id="shareSampleNote"></div>
     <span class="flabel" style="display:block; font-size:12.5px; font-weight:900; margin-bottom:6px">サムネイルのプレビュー</span>
     <div class="sp-preview-stage"><div id="spPreview"></div></div>
@@ -1553,7 +1581,7 @@
         <div>
           <label class="btn-file" for="sp-photo">画像を選ぶ</label>
           <input type="file" id="sp-photo" accept="image/*" hidden />
-          <div><button type="button" class="btn-ghost-sm" id="btnSpPhotoClear" hidden>画像を削除</button></div>
+          <div><button type="button" class="btn-ghost-sm" id="btnSpPhotoAdjust" hidden>位置を調整</button> <button type="button" class="btn-ghost-sm" id="btnSpPhotoClear" hidden>画像を削除</button></div>
           <p class="hint">選んだ画像はこの画面のプレビューにだけ表示されます。</p>
           <p class="img-note">許可をとっている画像を使用してください</p>
           <label class="rights-check" id="rightsShareWrap"><input type="checkbox" id="rights-share" /><span>この画像を使う権利・許可を確認しました<small>自分が権利を持っている、または権利者から公開の許可を得た画像です。画像を選んだ場合は、チェックしないと保存できません。</small></span></label>
@@ -1611,7 +1639,7 @@
   </section>
 
   <section class="fcard sp-actions" aria-label="共有する">
-    <h2><span class="step">STEP 4</span>共有する</h2>
+    <h2><span class="step">STEP 5</span>共有する</h2>
     <p class="sub">あなたの推しプロフィールを、そのままSNSで共有できます。</p>
     <div id="spUrlBox"></div>
     <div class="save-action save-action--share">
@@ -2526,6 +2554,19 @@
     <div class="qr-box"><div id="qrTarget"></div></div>
     <p class="m-note" id="qrText" style="text-align:center"></p>
     <p class="m-note" style="text-align:center">読み取ると、この推しプロフィールのURLが開きます。</p>
+  </div>
+</div>
+
+<div class="modal-bg" id="cropModal" role="dialog" aria-modal="true" aria-label="画像の位置を調整">
+  <div class="modal">
+    <h2>画像の位置を調整</h2>
+    <p class="m-note" style="margin-top:0">枠の中に収まる位置を調整してください。ドラッグで移動、スライダーやピンチで拡大・縮小できます。</p>
+    <div class="crop-stage" id="cropStage"><img id="cropImg" alt="調整中の画像" /></div>
+    <div class="crop-zoom-row"><span>拡大</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1" aria-label="拡大・縮小" /></div>
+    <div class="crop-actions">
+      <button type="button" class="btn-ghost-sm" id="btnCropCancel">キャンセル</button>
+      <button type="button" class="btn-save" id="btnCropOk">この範囲で決定</button>
+    </div>
   </div>
 </div>
 
@@ -4104,7 +4145,7 @@
       state.records = [];
       var thumb = $("imgThumb");
       if(thumb) thumb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 19 5.5-5.5 3 3L17 13l2 2.5"/></svg>';
-      var clearBtn = $("btnPhotoClear"); if(clearBtn) clearBtn.hidden = true;
+      var clearBtn = $("btnPhotoClear"); if(clearBtn) clearBtn.hidden = true; var adjBtn0 = $("btnPhotoAdjust"); if(adjBtn0) adjBtn0.hidden = true;
       var photoInput = $("f-photo"); if(photoInput) photoInput.value = "";
       document.querySelectorAll("#tagChips [data-tag]").forEach(function(b){ b.setAttribute("aria-pressed", "false"); });
       renderPointRows();
@@ -4237,15 +4278,159 @@
     r.onload = function(){ cb(String(r.result)); };
     r.readAsDataURL(file);
   }
+  /* ---------- image cropper（写真の位置・拡大の調整） ----------
+     写真を選んだあと、表示枠の中でドラッグ移動と拡大・縮小
+     （スライダー／ピンチ／ホイール）で位置を調整するモーダル。
+     決定すると調整結果を新しい画像データに焼き込んで返す
+     ので、保存される画像・布教シート生成・カード用シート
+     画像のすべてに調整がそのまま反映される。キャンセル時は
+     null が返り、呼び出し側は何も変更しない。 */
+  var cropCtx = null;
+  function cropLayout(){
+    if(!cropCtx) return;
+    var st = $("cropStage"), img = $("cropImg");
+    var W = st.clientWidth, H = st.clientHeight;
+    if(!W || !H) return;
+    var base = Math.max(W / cropCtx.nw, H / cropCtx.nh);
+    var scale = base * cropCtx.zoom;
+    var dw = cropCtx.nw * scale, dh = cropCtx.nh * scale;
+    cropCtx.dw = dw; cropCtx.dh = dh; cropCtx.W = W; cropCtx.H = H;
+    cropCtx.ox = Math.min(0, Math.max(W - dw, cropCtx.ox));
+    cropCtx.oy = Math.min(0, Math.max(H - dh, cropCtx.oy));
+    img.style.width = dw + "px";
+    img.style.height = dh + "px";
+    img.style.transform = "translate(" + cropCtx.ox + "px," + cropCtx.oy + "px)";
+  }
+  function setCropZoom(z){
+    if(!cropCtx) return;
+    z = Math.min(4, Math.max(1, z));
+    var st = $("cropStage");
+    var W = cropCtx.W || st.clientWidth, H = cropCtx.H || st.clientHeight;
+    var oldDw = cropCtx.dw, oldDh = cropCtx.dh;
+    cropCtx.zoom = z;
+    if(oldDw && oldDh && W && H){
+      var base = Math.max(W / cropCtx.nw, H / cropCtx.nh);
+      var ndw = cropCtx.nw * base * z, ndh = cropCtx.nh * base * z;
+      var cx = (W / 2 - cropCtx.ox) / oldDw, cy = (H / 2 - cropCtx.oy) / oldDh;
+      cropCtx.ox = W / 2 - cx * ndw;
+      cropCtx.oy = H / 2 - cy * ndh;
+    }
+    var slider = $("cropZoom"); if(slider) slider.value = String(z);
+    cropLayout();
+  }
+  function openImageCropper(src, opt, cb){
+    opt = opt || {};
+    var modal = $("cropModal");
+    if(!modal || !src){ cb(null); return; }
+    var probe = new Image();
+    probe.onload = function(){
+      var nw = probe.naturalWidth || probe.width, nh = probe.naturalHeight || probe.height;
+      if(!nw || !nh){ cb(null); return; }
+      cropCtx = { imgEl: probe, nw: nw, nh: nh, aw: opt.aw || 1, ah: opt.ah || 1, outW: opt.outW || 1024, outH: opt.outH || 1024, zoom: 1, ox: 0, oy: 0, dw: 0, dh: 0, W: 0, H: 0, cb: cb };
+      var st = $("cropStage");
+      st.style.aspectRatio = cropCtx.aw + " / " + cropCtx.ah;
+      st.classList.toggle("crop-stage--round", !!opt.round);
+      $("cropImg").src = src;
+      $("cropZoom").value = "1";
+      modal.classList.add("open");
+      requestAnimationFrame(function(){
+        if(!cropCtx) return;
+        var W = st.clientWidth, H = st.clientHeight;
+        var base = Math.max(W / nw, H / nh);
+        cropCtx.ox = (W - nw * base) / 2;
+        cropCtx.oy = (H - nh * base) / 2;
+        cropLayout();
+      });
+    };
+    probe.onerror = function(){ cb(null); };
+    probe.src = src;
+  }
+  function closeImageCropper(result){
+    var ctx = cropCtx; cropCtx = null;
+    var modal = $("cropModal"); if(modal) modal.classList.remove("open");
+    if(ctx && ctx.cb) ctx.cb(result);
+  }
+  function finishImageCropper(){
+    if(!cropCtx || !cropCtx.dw) return;
+    var ctx = cropCtx;
+    try {
+      var scale = ctx.dw / ctx.nw;
+      var sx = -ctx.ox / scale, sy = -ctx.oy / scale;
+      var sw = ctx.W / scale, sh = ctx.H / scale;
+      var canvas = document.createElement("canvas");
+      canvas.width = ctx.outW; canvas.height = ctx.outH;
+      var c2 = canvas.getContext("2d");
+      c2.fillStyle = "#ffffff"; c2.fillRect(0, 0, canvas.width, canvas.height);
+      c2.drawImage(ctx.imgEl, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+      closeImageCropper(canvas.toDataURL("image/jpeg", 0.9));
+    } catch(e){ closeImageCropper(null); }
+  }
+  (function initImageCropper(){
+    var st = $("cropStage"); if(!st) return;
+    var pointers = {};
+    var pinchDist = 0;
+    st.addEventListener("pointerdown", function(e){
+      if(!cropCtx) return;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      try { st.setPointerCapture(e.pointerId); } catch(err){}
+      var ps = Object.keys(pointers).map(function(k){ return pointers[k]; });
+      if(ps.length === 2) pinchDist = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+      e.preventDefault();
+    });
+    st.addEventListener("pointermove", function(e){
+      if(!cropCtx || !pointers[e.pointerId]) return;
+      var prev = pointers[e.pointerId];
+      var dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+      pointers[e.pointerId] = { x: e.clientX, y: e.clientY };
+      var ps = Object.keys(pointers).map(function(k){ return pointers[k]; });
+      if(ps.length === 1){
+        cropCtx.ox += dx; cropCtx.oy += dy; cropLayout();
+      } else if(ps.length === 2){
+        var d = Math.hypot(ps[0].x - ps[1].x, ps[0].y - ps[1].y);
+        if(pinchDist > 0 && d > 0) setCropZoom(cropCtx.zoom * (d / pinchDist));
+        pinchDist = d;
+      }
+    });
+    function endPointer(e){ delete pointers[e.pointerId]; pinchDist = 0; }
+    st.addEventListener("pointerup", endPointer);
+    st.addEventListener("pointercancel", endPointer);
+    st.addEventListener("wheel", function(e){
+      if(!cropCtx) return;
+      e.preventDefault();
+      setCropZoom(cropCtx.zoom * (e.deltaY < 0 ? 1.08 : 0.92));
+    }, { passive: false });
+    $("cropZoom").addEventListener("input", function(){ if(cropCtx) setCropZoom(parseFloat(this.value) || 1); });
+    $("btnCropOk").addEventListener("click", finishImageCropper);
+    $("btnCropCancel").addEventListener("click", function(){ closeImageCropper(null); });
+  })();
   $("f-photo").addEventListener("change", function(){
     var f = this.files && this.files[0];
     if(!f) return;
+    var input = this;
     readImage(f, function(url){
-      state.profileImg = url;
+      /* 選んだ直後に位置・拡大の調整モーダルを開く。決定した
+         画像だけがプロフィール画像になる（キャンセル時は
+         何も変えない）。 */
+      openImageCropper(url, { aw: 1, ah: 1, outW: 1024, outH: 1024 }, function(cropped){
+        if(!cropped) return;
+        state.profileImg = cropped;
+        state.profileRights = false;
+        syncProfileRightsUI();
+        $("imgThumb").innerHTML = '<img src="' + esc(safeImgSrc(cropped)) + '" alt="選択したプロフィール画像" />';
+        $("btnPhotoClear").hidden = false; var adjBtn1 = $("btnPhotoAdjust"); if(adjBtn1) adjBtn1.hidden = false;
+        renderAll();
+      });
+      input.value = "";
+    });
+  });
+  $("btnPhotoAdjust").addEventListener("click", function(){
+    if(!state.profileImg) return;
+    openImageCropper(state.profileImg, { aw: 1, ah: 1, outW: 1024, outH: 1024 }, function(cropped){
+      if(!cropped) return;
+      state.profileImg = cropped;
       state.profileRights = false;
       syncProfileRightsUI();
-      $("imgThumb").innerHTML = '<img src="' + esc(safeImgSrc(url)) + '" alt="選択したプロフィール画像" />';
-      $("btnPhotoClear").hidden = false;
+      $("imgThumb").innerHTML = '<img src="' + esc(safeImgSrc(cropped)) + '" alt="選択したプロフィール画像" />';
       renderAll();
     });
   });
@@ -4292,11 +4477,23 @@
     var t = e.target;
     if(t.hasAttribute && t.hasAttribute("data-goods-img")){
       var gi = +t.getAttribute("data-goods-img");
-      readImage(t.files && t.files[0], function(url){ if(state.goods[gi]){ state.goods[gi].img = url; state.goods[gi].rights = false; } renderGoods(); renderPreview(); });
+      var gfile = t.files && t.files[0];
+      if(gfile) readImage(gfile, function(url){
+        openImageCropper(url, { aw: 1, ah: 1, outW: 1024, outH: 1024 }, function(cropped){
+          if(cropped && state.goods[gi]){ state.goods[gi].img = cropped; state.goods[gi].rights = false; renderGoods(); renderPreview(); }
+        });
+      });
+      t.value = "";
     }
     if(t.hasAttribute && t.hasAttribute("data-rec-img")){
       var ri = +t.getAttribute("data-rec-img");
-      readImage(t.files && t.files[0], function(url){ if(state.records[ri]){ state.records[ri].img = url; state.records[ri].rights = false; } renderRecords(); renderPreview(); });
+      var rfile = t.files && t.files[0];
+      if(rfile) readImage(rfile, function(url){
+        openImageCropper(url, { aw: 1, ah: 1, outW: 1024, outH: 1024 }, function(cropped){
+          if(cropped && state.records[ri]){ state.records[ri].img = cropped; state.records[ri].rights = false; renderRecords(); renderPreview(); }
+        });
+      });
+      t.value = "";
     }
   });
 
@@ -4546,7 +4743,7 @@
      built from the form (manual); until then it mirrors the profile
      created in this session (labels only, blank values, when there
      is none). */
-  var spState = { design:"simple", color:THUMB_ACCENT_DEFAULT, colorPicked:false, manual:false, img:"", imgSet:false, visibility:"private", rightsChecked:false };
+  var spState = { design:"simple", color:THUMB_ACCENT_DEFAULT, colorPicked:false, manual:false, img:"", imgSet:false, visibility:"private", rightsChecked:false, oshiId:null };
 
   /* ---------- visibility (公開設定) ----------
      Three levels, chosen per profile and per 布教シート (the two
@@ -4591,10 +4788,10 @@
   function updateSpImgThumb(){
     if(spState.imgSet && spState.img){
       $("spImgThumb").innerHTML = '<img src="' + esc(safeImgSrc(spState.img)) + '" alt="選択したプロフィール写真" />';
-      $("btnSpPhotoClear").hidden = false;
+      $("btnSpPhotoClear").hidden = false; var spAdj1 = $("btnSpPhotoAdjust"); if(spAdj1) spAdj1.hidden = false;
     } else {
       $("spImgThumb").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 19 5.5-5.5 3 3L17 13l2 2.5"/></svg>';
-      $("btnSpPhotoClear").hidden = true;
+      $("btnSpPhotoClear").hidden = true; var spAdj2 = $("btnSpPhotoAdjust"); if(spAdj2) spAdj2.hidden = true;
     }
   }
   /* Pre-fill the STEP 3 form from the profile created in this session. */
@@ -5173,6 +5370,7 @@
     spState.imgSet = false;
     spState.visibility = "private";
     spState.rightsChecked = false;
+    spState.oshiId = null;
     ["sp-name", "sp-furigana", "sp-birth", "sp-height", "sp-blood", "sp-origin", "sp-points"].forEach(function(id){
       var el = $(id); if(el) el.value = "";
     });
@@ -5183,58 +5381,129 @@
     var fb = $("shareSaveFeedback"); if(fb) fb.hidden = true;
     var vf = $("sheetVisFeedback"); if(vf) vf.hidden = true;
   }
+  /* ---------- share page STEP 1: 推しを選ぶ ----------
+     The sheet's content source is chosen explicitly here:
+     one of the visitor's saved 推しプロフィール, or the
+     hand-input mode. Until a choice is made, the sheet stays
+     completely blank (nothing is mirrored from anywhere).
+     Picking a profile loads that profile's saved data (NOT
+     just whatever the profile editor's form happens to hold)
+     and reflects it into the sheet — this is the fix for
+     「公開で保存したのに布教シートに反映されない」: the
+     fresh-creation open used to reset everything to blank
+     with no way to pull a saved profile in. */
+  function renderOshiPicker(){
+    var list = $("spOshiList"); if(!list) return;
+    var profiles = [];
+    try { profiles = readProfiles(); } catch(e){ profiles = []; }
+    var html = "";
+    profiles.forEach(function(en){
+      var nm = (typeof entryName === "function") ? entryName(en.data) : "";
+      var img = (en.data && en.data.profileImg) ? String(en.data.profileImg) : "";
+      html += '<button type="button" class="oshi-card" data-oshi="' + esc(en.id) + '" aria-pressed="' + String(spState.oshiId === en.id) + '">'
+        + '<span class="oshi-thumb">' + (img ? '<img src="' + esc(safeImgSrc(img)) + '" alt="" />' : '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="12" cy="8.2" r="4.1"/><path d="M3.8 21.2c1.4-4.3 4.4-6.4 8.2-6.4s6.8 2.1 8.2 6.4z"/></svg>') + '</span>'
+        + '<span class="oshi-name">' + esc(nm || "（名前未入力）") + '</span></button>';
+    });
+    html += '<button type="button" class="oshi-card" data-oshi="__manual" aria-pressed="' + String(spState.oshiId === "__manual") + '">'
+      + '<span class="oshi-thumb" aria-hidden="true">✎</span>'
+      + '<span class="oshi-name">プロフィールを使わず手入力で作る</span></button>';
+    list.innerHTML = html;
+    var note = $("spOshiNote");
+    if(note){
+      if(!profiles.length) note.textContent = "まだ推しプロフィールが保存されていません。手入力でも作れます。";
+      else if(!spState.oshiId) note.textContent = "推しを選ぶと、そのプロフィールの内容が下のステップに自動で反映されます。選ぶまでは何も入力されません。";
+      else if(spState.oshiId === "__manual") note.textContent = "手入力モードです。下の内容の確認・入力で自由に入力してください。";
+      else note.textContent = "選択中の推しの内容が反映されています。別の推しを選ぶと切り替わります。";
+    }
+  }
+  /* Load one saved profile into the share page (the same
+     reflection the マイページ sheet-edit open has always
+     done): the profile data goes into the editor form (the
+     sheet's mirror source), that person's saved sheet — if
+     any — is applied on top, and the STEP 4 form is filled
+     from the profile when the sheet itself is not manual. */
+  function applyProfileToSharePage(profileId){
+    if(typeof getProfileEntry !== "function") return false;
+    var entry = getProfileEntry(profileId);
+    if(!entry) return false;
+    applyProfileData(entry.data);
+    currentEditingId = profileId;
+    editorMode = "edit";
+    spState.oshiId = profileId;
+    spState.manual = false;
+    var hasOwnSheet = (typeof applyShareDataForProfile === "function") ? applyShareDataForProfile(profileId) : false;
+    if(!hasOwnSheet){
+      /* This person has no saved 布教シート yet: start from
+         the share page's own defaults (シンプル + the
+         thumbnail accent), NOT from the profile's design /
+         color — the two are chosen independently. */
+      spState.design = "simple";
+      spState.color = thumbAccentColor(profileSnapshot());
+      spState.colorPicked = false;
+      /* A sheet that has never been saved starts 非公開. */
+      spState.visibility = "private";
+      syncSheetVisibilityUI();
+      spState.manual = false;
+    }
+    if(!spState.manual) fillSpFormFromProfile();
+    if(!spState.colorPicked){
+      /* Share color default only: never inherit the profile's
+         design color (state.designColor). */
+      spState.color = thumbAccentColor(profileSnapshot());
+      var cp = $("spColorPick"); if(cp) cp.value = spState.color;
+      var ct = $("spColorText"); if(ct) ct.value = spState.color;
+    }
+    return true;
+  }
+  function selectOshi(sel){
+    if(sel === "__manual"){
+      /* Hand-input mode: blank sheet, and no profile id, so a
+         hand-typed sheet is never filed under someone else's
+         per-person sheet slot. */
+      resetShareToBlank();
+      spState.oshiId = "__manual";
+      currentEditingId = null;
+      renderOshiPicker();
+      renderSharePage();
+      return;
+    }
+    if(typeof sel === "string" && sel && applyProfileToSharePage(sel)){
+      renderOshiPicker();
+      renderSharePage();
+    }
+  }
+  document.querySelectorAll("#spOshiList").forEach(function(el){
+    el.addEventListener("click", function(e){
+      var card = e.target.closest ? e.target.closest("[data-oshi]") : null;
+      if(card) selectOshi(card.getAttribute("data-oshi"));
+    });
+  });
   function openSharePage(profileId){
     /* 作成中の段階ではログインガードなし：未ログインでも共有ページを確認できる。 */
     if(profileId && typeof profileId === "object") profileId = null;
     /* No profile id = a fresh creation: opened from the top
        page's 「布教シートを作ろう」 (or マイページ's
-       布教シートを作る). With an id it is the edit flow from
-       マイページ's sheet list for that person. */
+       布教シートを作る). It starts with 推し unselected and
+       everything blank; STEP 1's 推しを選ぶ is where a saved
+       profile gets pulled in. With an id it is the edit flow
+       from マイページ's sheet list for that person, and that
+       person starts out selected. */
     var blankOpen = !(typeof profileId === "string" && profileId && profileId !== "__legacy");
-    if(typeof profileId === "string" && profileId && profileId !== "__legacy" && typeof getProfileEntry === "function"){
-      var entry = getProfileEntry(profileId);
-      if(entry){
-        applyProfileData(entry.data);
-        currentEditingId = profileId;
-        editorMode = "edit";
-        spState.manual = false;
-        var hasOwnSheet = (typeof applyShareDataForProfile === "function") ? applyShareDataForProfile(profileId) : false;
-        if(!hasOwnSheet){
-          /* This person has no saved 布教シート yet: start from
-             the share page's own defaults (シンプル + the
-             thumbnail accent), NOT from the profile's design /
-             color — the two are chosen independently. */
-          spState.design = "simple";
-          spState.color = thumbAccentColor(profileSnapshot());
-          spState.colorPicked = false;
-          /* A sheet that has never been saved starts 非公開. */
-          spState.visibility = "private";
-          syncSheetVisibilityUI();
-          spState.manual = false;
-        }
-      }
-    }
+    var applied = false;
+    if(!blankOpen) applied = applyProfileToSharePage(profileId);
     closeMenuPanel();
     hideSubViews();
     $("homeView").hidden = true;
     $("editorView").hidden = true;
     $("sharePageView").hidden = false;
-    if(blankOpen){
+    if(blankOpen || !applied){
       /* Fresh creation always starts completely blank and
          unselected, even if a sheet was made or edited earlier
          in this session: nothing is pre-filled from a profile
          and no earlier design / color choice carries over. */
       resetShareToBlank();
-    } else {
-      if(!spState.manual) fillSpFormFromProfile();
-      if(!spState.colorPicked){
-        /* Share color default only: never inherit the profile's
-           design color (state.designColor). */
-        spState.color = thumbAccentColor(profileSnapshot());
-        $("spColorPick").value = spState.color;
-        $("spColorText").value = spState.color;
-      }
     }
+    renderOshiPicker();
     renderSharePage();
     window.scrollTo(0, 0);
     gaView("share");
@@ -6662,13 +6931,19 @@
   if($("acctAvatarFile")) $("acctAvatarFile").addEventListener("change", function(){
     var f = this.files && this.files[0];
     if(!f) return;
-    acctResizeImage(f, function(dataUrl){
-      if(!dataUrl){ toast("画像を読み込めませんでした。別の画像でお試しください。"); return; }
-      acctAvatarPending = { mode: "new", dataUrl: dataUrl };
-      var cb = $("rights-acct"); if(cb) cb.checked = false;
-      acctShowError("");
-      renderAcctAvaThumb();
-      syncAcctRightsUI();
+    var input = this;
+    readImage(f, function(url){
+      /* アイコン枠（正方形・丸）に合わせて位置・拡大を調整
+         してから 256×256 にする。キャンセル時は何も変えない。 */
+      openImageCropper(url, { aw: 1, ah: 1, outW: 256, outH: 256, round: true }, function(cropped){
+        if(!cropped){ toast("画像を読み込めませんでした。別の画像でお試しください。"); return; }
+        acctAvatarPending = { mode: "new", dataUrl: cropped };
+        var cb = $("rights-acct"); if(cb) cb.checked = false;
+        acctShowError("");
+        renderAcctAvaThumb();
+        syncAcctRightsUI();
+      });
+      input.value = "";
     });
   });
   if($("btnAcctAvaClear")) $("btnAcctAvaClear").addEventListener("click", function(){
@@ -7102,7 +7377,7 @@
       state.records = [];
       var thumb = $("imgThumb");
       if(thumb) thumb.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 19 5.5-5.5 3 3L17 13l2 2.5"/></svg>';
-      var clearBtn = $("btnPhotoClear"); if(clearBtn) clearBtn.hidden = true;
+      var clearBtn = $("btnPhotoClear"); if(clearBtn) clearBtn.hidden = true; var adjBtn0 = $("btnPhotoAdjust"); if(adjBtn0) adjBtn0.hidden = true;
       var photoInput = $("f-photo"); if(photoInput) photoInput.value = "";
       document.querySelectorAll("#tagChips [data-tag]").forEach(function(b){ b.setAttribute("aria-pressed", "false"); });
       if(typeof renderPointRows === "function") renderPointRows();
@@ -8748,9 +9023,28 @@
   $("sp-photo").addEventListener("change", function(){
     var f = this.files && this.files[0];
     if(!f) return;
+    var input = this;
     readImage(f, function(url){
-      spState.img = url;
-      spState.imgSet = true;
+      /* シートの写真枠（3:4）に合わせて位置・拡大を調整して
+         からセットする。キャンセル時は何も変えない。 */
+      openImageCropper(url, { aw: 3, ah: 4, outW: 900, outH: 1200 }, function(cropped){
+        if(!cropped) return;
+        spState.img = cropped;
+        spState.imgSet = true;
+        spState.rightsChecked = false;
+        spState.manual = true;
+        syncShareRightsUI();
+        updateSpImgThumb();
+        renderSharePage();
+      });
+      input.value = "";
+    });
+  });
+  $("btnSpPhotoAdjust").addEventListener("click", function(){
+    if(!spState.imgSet || !spState.img) return;
+    openImageCropper(spState.img, { aw: 3, ah: 4, outW: 900, outH: 1200 }, function(cropped){
+      if(!cropped) return;
+      spState.img = cropped;
       spState.rightsChecked = false;
       spState.manual = true;
       syncShareRightsUI();
@@ -9244,10 +9538,10 @@
       });
       if(state.profileImg){
         $("imgThumb").innerHTML = '<img src="' + esc(safeImgSrc(state.profileImg)) + '" alt="選択したプロフィール画像" />';
-        $("btnPhotoClear").hidden = false;
+        $("btnPhotoClear").hidden = false; var adjBtn1 = $("btnPhotoAdjust"); if(adjBtn1) adjBtn1.hidden = false;
       } else {
         $("imgThumb").innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="m5 19 5.5-5.5 3 3L17 13l2 2.5"/></svg>';
-        $("btnPhotoClear").hidden = true;
+        $("btnPhotoClear").hidden = true; var adjBtn2 = $("btnPhotoAdjust"); if(adjBtn2) adjBtn2.hidden = true;
         var photoEl = $("f-photo"); if(photoEl) photoEl.value = "";
       }
       /* Loading a profile does NOT touch the share page's
@@ -9338,8 +9632,11 @@
       } catch(e){ /* localStorage unavailable: editing keeps working unsaved */ }
     }
     /* Per-person copy, so each profile's sheet keeps its own
-       design / color / manual edits in 布教シートの管理. */
-    if(currentEditingId){
+       design / color / manual edits in 布教シートの管理.
+       Only filed under the profile actually selected in
+       STEP 1 — a hand-input sheet (or one saved before any
+       selection) never lands in someone else's slot. */
+    if(currentEditingId && spState.oshiId === currentEditingId){
       var map = readStoredJson(SHARES_MAP_KEY) || {};
       map[currentEditingId] = data;
       try { window.localStorage.setItem(SHARES_MAP_KEY, JSON.stringify(map)); } catch(e){}
@@ -9498,7 +9795,11 @@
       toast("メンバーカラーの名前を入力した場合は、検索用カテゴリを選んでください（プロフィール作成のメンバーカラー欄）");
       return;
     }
-    saveProfileNow();
+    /* プロフィールも一緒に保存するのは、STEP 1で推しを
+       選んでいる時だけ。手入力（未選択を含む）では、エディタ
+       側に残っている別人の内容でプロフィールを新規作成・
+       上書きしてしまわないようにする。 */
+    if(spState.oshiId && spState.oshiId !== "__manual") saveProfileNow();
     clearDraft();
     editorMode = "edit";
     saveShareNow();
