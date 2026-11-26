@@ -3481,6 +3481,54 @@
     }
     return base;
   }
+  /* ---------- 共有リンクのカード（OGP） ----------
+     静的サイトのままでは、X等のクローラに「その人の布教シート」
+     を og:image として渡せない。そこで共有専用の配信URL
+     （Supabase Edge Function「og-card」）を用意し、クローラには
+     その人のシート画像入りのカードHTMLを、人間の訪問者には
+     本物のプロフィールページへの転送を返す。
+     CARD_SHARE_ENABLED は、Edge Function のデプロイと動作確認が
+     済むまで false。true にしたときだけ、布教シート STEP 4 の
+     共有URLがカード配信用URLに切り替わる（プロフィールページ
+     自体のURLは従来通り ?u=<slug> のまま）。 */
+  var CARD_FUNCTION_URL = "https://wpynmswmganafkzfajsw.supabase.co/functions/v1/og-card";
+  var CARD_SHARE_ENABLED = false;
+  function cardSlug(){
+    var slug = "";
+    try {
+      var u = (typeof Auth !== "undefined" && Auth && typeof Auth.currentUser === "function") ? Auth.currentUser() : null;
+      if(u && u.userId) slug = String(u.userId).trim();
+    } catch(e){}
+    if(!slug && typeof currentEditingId === "string" && currentEditingId.indexOf("sb-") === 0){
+      slug = currentEditingId.slice(3);
+    }
+    return slug.replace(/^@+/, "").toLowerCase().replace(/[^a-z0-9_-]/g, "");
+  }
+  function getCardShareUrl(){
+    var slug = cardSlug();
+    if(!slug) return "";
+    return CARD_FUNCTION_URL + "?u=" + encodeURIComponent(slug);
+  }
+  /* 布教シート STEP 4 が使う共有URL。カード配信が有効で、ログイン
+     中のサーバー保存プロフィール（公開／限定公開）のときだけ
+     カード配信用URLを返し、それ以外（ゲスト・非公開・未保存）は
+     従来のプロフィールURLを返す。 */
+  function spShareUrl(){
+    if(CARD_SHARE_ENABLED){
+      try {
+        var user = (typeof Auth !== "undefined" && Auth && typeof Auth.currentUser === "function") ? Auth.currentUser() : null;
+        if(user && user._sb && user.id && typeof currentEditingId === "string" && currentEditingId){
+          var entry = getProfileEntry(currentEditingId);
+          var vis = entry ? normalizeVisibility(entry.data && entry.data.visibility) : "";
+          if(vis === "public" || vis === "limited"){
+            var cu = getCardShareUrl();
+            if(cu) return cu;
+          }
+        }
+      } catch(e){}
+    }
+    return getShareUrl(spCurrentName());
+  }
   function shareTitle(nameOverride){
     var name = (nameOverride != null ? String(nameOverride).trim() : profileNameForShare());
     return (name ? name + "の推しプロフィール" : "推しプロフィール") + " | 推しLink";
@@ -4804,13 +4852,19 @@
     });
     return lines;
   }
-  function drawThumbImage(){
-    var d = getSpData();
+  /* With no arguments this keeps its original job: draw the share
+     page's current thumbnail and download it as a PNG. With
+     (thumbData, onBlob) it draws the given thumbnail data instead
+     and hands the PNG blob to the callback — used to generate the
+     OGP card image when a profile is saved to the server (see
+     sbGenerateSheetCard). */
+  function drawThumbImage(dataOverride, onBlob){
+    var d = dataOverride || getSpData();
     var W = 1200, H = 630;
     var canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     var ctx = canvas.getContext("2d");
-    if(!ctx){ toast("画像を作れませんでした"); return; }
+    if(!ctx){ if(onBlob){ onBlob(null); } else { toast("画像を作れませんでした"); } return; }
     var acc = d.accent;
     var c = hexRgb(acc);
     var site = d.design === "site";
@@ -4990,8 +5044,9 @@
         ctx.fillText(ln, rightX + pPadX, pointsY + pTop + i * lh);
       });
 
-      /* download */
+      /* download (or hand the PNG blob to the caller) */
       function done(blob){
+        if(onBlob){ onBlob(blob || null); return; }
         if(!blob){ toast("画像を作れませんでした"); return; }
         var url = URL.createObjectURL(blob);
         var a = document.createElement("a");
@@ -5004,14 +5059,25 @@
         setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
         toast("画像を保存しました");
       }
-      if(canvas.toBlob){ canvas.toBlob(done, "image/png"); }
-      else {
-        var du = canvas.toDataURL("image/png");
-        var a2 = document.createElement("a");
-        a2.href = du;
-        a2.download = ((d.name || "推し").replace(/[\\\/:*?"<>|]/g, "_")) + "_サムネ.png";
-        document.body.appendChild(a2); a2.click(); a2.remove();
-        toast("画像を保存しました");
+      var exported = false;
+      try {
+        if(canvas.toBlob){ canvas.toBlob(done, "image/png"); exported = true; }
+      } catch(e){ /* tainted canvas etc.: fall through to the blob callback / error path */ }
+      if(!exported){
+        var du = null;
+        try { du = canvas.toDataURL("image/png"); } catch(e){ du = null; }
+        if(onBlob){
+          var parsed = (du && typeof sbDataUrlToBlob === "function") ? sbDataUrlToBlob(du) : null;
+          onBlob(parsed ? parsed.blob : null);
+        } else if(du) {
+          var a2 = document.createElement("a");
+          a2.href = du;
+          a2.download = ((d.name || "推し").replace(/[\\\/:*?"<>|]/g, "_")) + "_サムネ.png";
+          document.body.appendChild(a2); a2.click(); a2.remove();
+          toast("画像を保存しました");
+        } else {
+          toast("画像を作れませんでした");
+        }
       }
     }
 
@@ -5020,7 +5086,22 @@
         document.fonts.ready.then(function(){ paint(photoImg); });
       } else paint(photoImg);
     }
-    if(d.img){
+    if(d.img && onBlob && /^https?:\/\//i.test(d.img)){
+      /* Blob mode (OGP card generation): fetch the photo as a blob
+         first and draw from an object URL, so a cross-origin
+         Storage URL can never taint the canvas and make toBlob
+         throw. If the fetch fails, draw without the photo rather
+         than failing the whole card. */
+      var blobUrl = null;
+      fetch(d.img).then(function(r){ return (r && r.ok) ? r.blob() : null; }).then(function(b){
+        if(!b){ start(null); return; }
+        blobUrl = URL.createObjectURL(b);
+        var bim = new Image();
+        bim.onload = function(){ start(bim); setTimeout(function(){ if(blobUrl) URL.revokeObjectURL(blobUrl); }, 4000); };
+        bim.onerror = function(){ start(null); };
+        bim.src = blobUrl;
+      }).catch(function(){ start(null); });
+    } else if(d.img){
       var im = new Image();
       im.onload = function(){ start(im); };
       im.onerror = function(){ start(null); };
@@ -5968,7 +6049,14 @@
             }
             return Sb.client.from("profiles").insert(row);
           })
-          .then(function(){ /* 保存の成否で画面は止めない（端末内保存が正） */ })
+          .then(function(saveRes){
+            /* 保存の成否で画面は止めない（端末内保存が正）。
+               サーバー保存できたら、公開／限定公開のプロフィール
+               では共有カード用の布教シート画像も生成しておく。 */
+            if(saveRes && !saveRes.error){
+              try { sbGenerateSheetCard(entry, d, slug, user, row.visibility); } catch(e){}
+            }
+          })
           .catch(function(){});
       };
       /* 重複チェック: サーバー保存の前に、その slug（ユーザーID）
@@ -6005,6 +6093,70 @@
         })
         .catch(function(){ proceed(entry.data || {}); });
     } catch(e){ /* Supabase 失敗時も端末内保存だけで続行 */ }
+  }
+  /* ---------- 共有カード（OGP）用の布教シート画像 ----------
+     ログイン中にプロフィールを公開／限定公開でサーバー保存でき
+     たら、その人の布教シート（保存済みシートがあればその内容、
+     無ければプロフィールから自動で組み立てた内容）を
+     1200×630 の PNG に描いて Storage へ保存し、公開URLを
+     プロフィールの data.ogImage に記録する。共有専用の配信
+     ページ（Edge Function「og-card」）がこのURLを og:image に
+     使うので、X等に共有リンクを貼るとその人の布教シートが
+     サムネイルになる。生成・保存に失敗しても、プロフィール
+     保存自体や画面の動作には一切影響しない。 */
+  var sbCardGenerating = {};
+  function sbGenerateSheetCard(entry, savedData, slug, user, visibility){
+    try {
+      if(!entry || !savedData || !slug || !user || !user.id) return;
+      if(visibility !== "public" && visibility !== "limited") return;
+      if(sbCardGenerating[slug]) return;
+      var name = (typeof entryName === "function") ? String(entryName(savedData) || "").trim() : "";
+      if(!name) return;
+      sbCardGenerating[slug] = true;
+      var finish = function(){ try { delete sbCardGenerating[slug]; } catch(e){} };
+      var shareMap = readStoredJson(SHARES_MAP_KEY) || {};
+      var snapshot = (entry.id && shareMap[entry.id]) ? shareMap[entry.id] : null;
+      var thumb = sheetThumbDataFor(savedData, snapshot);
+      if(!thumb || !String(thumb.name || "").trim()){ finish(); return; }
+      drawThumbImage(thumb, function(blob){
+        try {
+          if(!blob){ finish(); return; }
+          var path = String(user.id) + "/sheet-" + slug + ".png";
+          Sb.client.storage.from(SB_IMAGE_BUCKET).upload(path, blob, { contentType: "image/png", upsert: true })
+            .then(function(up){
+              if(up && up.error){ finish(); return; }
+              var pub = Sb.client.storage.from(SB_IMAGE_BUCKET).getPublicUrl(path);
+              var url = (pub && pub.data) ? String(pub.data.publicUrl || "") : "";
+              if(!url){ finish(); return; }
+              var nextData = {};
+              Object.keys(savedData).forEach(function(k){ nextData[k] = savedData[k]; });
+              nextData.ogImage = url;
+              nextData.ogImageAt = Date.now();
+              Sb.client.from("profiles").update({ data: nextData }).eq("owner_id", user.id).eq("slug", slug)
+                .then(function(res){
+                  if(res && !res.error){
+                    /* 端末内の保存データにも ogImage だけ反映する
+                       （次回編集時にサーバー側の値と食い違わない
+                       ようにするため。他の値は触らない）。 */
+                    try {
+                      var arr = readProfiles();
+                      var changed = false;
+                      arr.forEach(function(en){
+                        if(en && en.id === entry.id && en.data && en.data.ogImage !== url){ en.data.ogImage = url; changed = true; }
+                      });
+                      if(changed) writeProfiles(arr);
+                    } catch(e){}
+                  }
+                  finish();
+                })
+                .catch(function(){ finish(); });
+            })
+            .catch(function(){ finish(); });
+        } catch(e){ finish(); }
+      });
+    } catch(e){
+      try { if(slug) delete sbCardGenerating[slug]; } catch(e2){}
+    }
   }
   function sbDeleteProfile(entry){
     try {
@@ -8619,27 +8771,27 @@
   $("spShareSaveImg").addEventListener("click", function(){ drawThumbImage(); });
   $("spShareX").addEventListener("click", function(){
     var name = spCurrentName();
-    var url = getShareUrl(name);
+    var url = spShareUrl();
     window.open("https://twitter.com/intent/tweet?text=" + encodeURIComponent(shareText(name)) + (url ? "&url=" + encodeURIComponent(url) : ""), "_blank", "noopener");
   });
   $("spShareLine").addEventListener("click", function(){
     var name = spCurrentName();
-    var url = getShareUrl(name);
+    var url = spShareUrl();
     var text = shareText(name);
     window.open("https://line.me/R/msg/text/?" + encodeURIComponent(url ? text + "\n" + url : text), "_blank", "noopener");
   });
   $("spShareCopy").addEventListener("click", function(){
-    var url = getShareUrl(spCurrentName());
+    var url = spShareUrl();
     if(url) copyTextToClipboard(url, "URLをコピーしました");
   });
   $("spShareQr").addEventListener("click", function(){
-    var url = getShareUrl(spCurrentName());
+    var url = spShareUrl();
     if(url) openQrModal(url, url);
   });
   $("spShareOther").addEventListener("click", function(){
     var name = spCurrentName();
     var text = shareText(name);
-    var url = getShareUrl(name);
+    var url = spShareUrl();
     var title = shareTitle(name);
     var payload = url ? { title:title, text:text, url:url } : { title:title, text:text };
     var fb = url || text;
