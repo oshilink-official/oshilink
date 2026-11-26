@@ -1604,6 +1604,10 @@
       <label for="sp-points">推しポイント</label>
       <textarea id="sp-points" rows="3" placeholder="推しの好きなところを自由に書けます"></textarea>
     </div>
+    <div class="save-action save-action--share">
+      <button type="button" class="btn-save" id="btnSaveShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>保存する</button>
+      <p class="save-feedback" id="shareSaveFeedback" role="status" aria-live="polite" hidden>✓ 保存しました</p>
+    </div>
   </section>
 
   <section class="fcard sp-actions" aria-label="共有する">
@@ -1611,11 +1615,9 @@
     <p class="sub">あなたの推しプロフィールを、そのままSNSで共有できます。</p>
     <div id="spUrlBox"></div>
     <div class="save-action save-action--share">
-      <button type="button" class="btn-save" id="btnSaveShare"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>保存する</button>
-      <p class="save-feedback" id="shareSaveFeedback" role="status" aria-live="polite" hidden>✓ 保存しました</p>
+      <button type="button" class="btn-save" id="spShareCopyBig"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/></svg>URLをコピー</button>
     </div>
     <div class="share-row">
-      <button type="button" class="share-btn" id="spShareCopy">URLをコピー</button>
       <button type="button" class="share-btn" id="spShareQr">QRコード</button>
       <button type="button" class="share-btn wide primary-share" id="spShareSaveImg">画像を保存</button>
       <button type="button" class="share-btn" id="spShareX">Xでポスト</button>
@@ -5144,9 +5146,8 @@
     /* STEP 4: share actions (URL-dependent buttons stay hidden until
        an absolute public URL is configured). */
     $("spUrlBox").innerHTML = url ? '<p class="share-url"><b>推しプロフィールのURL</b>' + esc(url) + '</p>' : "";
-    $("spShareCopy").hidden = !url;
+    $("spShareCopyBig").hidden = !url;
     $("spShareQr").hidden = !url;
-    $("spShareCopy").innerHTML = IC.copy + "URLをコピー";
     $("spShareQr").innerHTML = IC.qr + "QRコード";
     $("spShareSaveImg").innerHTML = IC.download + "画像を保存";
     $("spShareX").innerHTML = IC.x + "Xでポスト";
@@ -8780,7 +8781,7 @@
     var text = shareText(name);
     window.open("https://line.me/R/msg/text/?" + encodeURIComponent(url ? text + "\n" + url : text), "_blank", "noopener");
   });
-  $("spShareCopy").addEventListener("click", function(){
+  $("spShareCopyBig").addEventListener("click", function(){
     var url = spShareUrl();
     if(url) copyTextToClipboard(url, "URLをコピーしました");
   });
