@@ -3527,13 +3527,13 @@
   /* ---------- 共有リンクのカード（OGP） ----------
      静的サイトのままでは、X等のクローラに「その人の布教シート」
      を og:image として渡せない。そこで共有専用の配信URL
-     （Cloudflare Worker、oshilink.com/@<slug>）を用意し、クローラ
+     （Cloudflare Worker、oshilink.com/<slug>）を用意し、クローラ
      にはその人のシート画像入りのカードHTMLを、人間の訪問者には
      本物のプロフィールページへの転送を返す。
      CARD_SHARE_ENABLED が true のときだけ、布教シート STEP 4 の
      共有URLがカード配信用URLに切り替わる（プロフィールページ
      自体のURLは従来通り ?u=<slug> のまま）。 */
-  var CARD_SHARE_BASE = "https://oshilink.com/@";
+  var CARD_SHARE_BASE = "https://oshilink.com/";
   var CARD_SHARE_ENABLED = true;
   function cardSlug(){
     var slug = "";
@@ -6369,7 +6369,7 @@
      無ければプロフィールから自動で組み立てた内容）を
      1200×630 の PNG に描いて Storage へ保存し、公開URLを
      プロフィールの data.ogImage に記録する。共有専用の配信
-     （Cloudflare Worker、oshilink.com/@<slug>）がこのURLを og:image に
+     （Cloudflare Worker、oshilink.com/<slug>）がこのURLを og:image に
      使うので、X等に共有リンクを貼るとその人の布教シートが
      サムネイルになる。生成・保存に失敗しても、プロフィール
      保存自体や画面の動作には一切影響しない。 */
