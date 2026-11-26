@@ -11,12 +11,12 @@
 <meta property="og:site_name" content="#推しLink" />
 <meta property="og:title" content="推しLink ― あなたが知ってる推しの魅力。" />
 <meta property="og:description" content="好きなところを、あなたの言葉で。まだ知らない誰かに、推しの魅力を届けよう。 #推しLink" />
-<meta property="og:image" content="https://oshilink-official.github.io/oshilink/IMG_9617.jpeg" />
-<meta property="og:url" content="https://oshilink-official.github.io/oshilink/" />
+<meta property="og:image" content="https://oshilink.com/IMG_9617.jpeg" />
+<meta property="og:url" content="https://oshilink.com/" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="推しLink ― あなたが知ってる推しの魅力。" />
 <meta name="twitter:description" content="好きなところを、あなたの言葉で。まだ知らない誰かに、推しの魅力を届けよう。 #推しLink" />
-<meta name="twitter:image" content="https://oshilink-official.github.io/oshilink/IMG_9617.jpeg" />
+<meta name="twitter:image" content="https://oshilink.com/IMG_9617.jpeg" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700;900&family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet" />
@@ -2382,7 +2382,7 @@
       </div>
       <div class="field" id="contactTargetField" hidden>
         <label for="contactTargetUrl">対象プロフィールのURL<span class="req">必須</span></label>
-        <input type="url" id="contactTargetUrl" placeholder="https://oshilink-official.github.io/oshilink/?u=…" autocomplete="off" />
+        <input type="url" id="contactTargetUrl" placeholder="https://oshilink.com/?u=…" autocomplete="off" />
         <p class="hint">削除を希望するプロフィールのページのURLを貼ってください。</p>
       </div>
       <div class="field">
@@ -2464,7 +2464,7 @@
   </div>
 
   <section class="fcard" aria-label="サイトを見る">
-    <a class="btn-save" href="https://oshilink-official.github.io/oshilink/" target="_blank" rel="noopener noreferrer">サイトを見る</a>
+    <a class="btn-save" href="https://oshilink.com/" target="_blank" rel="noopener noreferrer">サイトを見る</a>
     <p class="admin-sec-note">公開中のサイトを新しいタブで開きます。ここで変更した内容が、みんなが見ているページに反映されているか確認できます。</p>
   </section>
 
@@ -3489,7 +3489,7 @@
      passing the relative "?oshi=…" string to X / LINE makes it show
      up verbatim in the post, and it must never be copied or encoded
      into a QR code either. */
-  var SHARE_URL_BASE = "https://oshilink-official.github.io/oshilink/";
+  var SHARE_URL_BASE = "https://oshilink.com/";
   function hasShareUrl(){
     return /^https?:\/\//i.test(String(SHARE_URL_BASE || "").trim());
   }
@@ -3527,14 +3527,13 @@
   /* ---------- 共有リンクのカード（OGP） ----------
      静的サイトのままでは、X等のクローラに「その人の布教シート」
      を og:image として渡せない。そこで共有専用の配信URL
-     （Supabase Edge Function「og-card」）を用意し、クローラには
-     その人のシート画像入りのカードHTMLを、人間の訪問者には
+     （Cloudflare Worker、oshilink.com/@<slug>）を用意し、クローラ
+     にはその人のシート画像入りのカードHTMLを、人間の訪問者には
      本物のプロフィールページへの転送を返す。
-     CARD_SHARE_ENABLED は、Edge Function のデプロイと動作確認が
-     済むまで false。true にしたときだけ、布教シート STEP 4 の
+     CARD_SHARE_ENABLED が true のときだけ、布教シート STEP 4 の
      共有URLがカード配信用URLに切り替わる（プロフィールページ
      自体のURLは従来通り ?u=<slug> のまま）。 */
-  var CARD_FUNCTION_URL = "https://wpynmswmganafkzfajsw.supabase.co/functions/v1/og-card";
+  var CARD_SHARE_BASE = "https://oshilink.com/@";
   var CARD_SHARE_ENABLED = true;
   function cardSlug(){
     var slug = "";
@@ -3550,7 +3549,7 @@
   function getCardShareUrl(){
     var slug = cardSlug();
     if(!slug) return "";
-    return CARD_FUNCTION_URL + "?u=" + encodeURIComponent(slug);
+    return CARD_SHARE_BASE + encodeURIComponent(slug);
   }
   /* 布教シート STEP 4 が使う共有URL。カード配信が有効で、ログイン
      中のサーバー保存プロフィール（公開／限定公開）のときだけ
@@ -3596,8 +3595,8 @@
     setMeta('meta[name="twitter:description"]', "content", desc);
     /* og:image stays on the rights-safe shared image (IMG_9617.jpeg):
        an uploaded profile photo is a local data URL, not a public image URL. */
-    setMeta('meta[property="og:image"]', "content", "https://oshilink-official.github.io/oshilink/IMG_9617.jpeg");
-    setMeta('meta[name="twitter:image"]', "content", "https://oshilink-official.github.io/oshilink/IMG_9617.jpeg");
+    setMeta('meta[property="og:image"]', "content", "https://oshilink.com/IMG_9617.jpeg");
+    setMeta('meta[name="twitter:image"]', "content", "https://oshilink.com/IMG_9617.jpeg");
   }
   function copyTextToClipboard(text, doneMsg){
     function done(){ toast(doneMsg || "コピーしました"); }
@@ -6370,7 +6369,7 @@
      無ければプロフィールから自動で組み立てた内容）を
      1200×630 の PNG に描いて Storage へ保存し、公開URLを
      プロフィールの data.ogImage に記録する。共有専用の配信
-     ページ（Edge Function「og-card」）がこのURLを og:image に
+     （Cloudflare Worker、oshilink.com/@<slug>）がこのURLを og:image に
      使うので、X等に共有リンクを貼るとその人の布教シートが
      サムネイルになる。生成・保存に失敗しても、プロフィール
      保存自体や画面の動作には一切影響しない。 */
@@ -6719,7 +6718,7 @@
       return;
     }
     try {
-      var oauthResult = Sb.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://oshilink-official.github.io/oshilink/' } });
+      var oauthResult = Sb.client.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: 'https://oshilink.com/' } });
       if(oauthResult && typeof oauthResult.then === "function"){
         oauthResult.then(function(res){
           if(res && res.error){
