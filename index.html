@@ -695,6 +695,14 @@
   .pv-listen{display:inline-block; margin-top:7px; font-size:12px; font-weight:900; color:var(--pink); text-decoration:none; border:1px solid var(--pink); border-radius:999px; padding:3px 12px}
   .song-filled .sf-main{flex:1; min-width:0}
   .song-filled input[type="text"]{width:100%; max-width:100%; min-width:0; border:1px solid var(--border-soft); border-radius:9px; background:var(--surface); color:var(--text); font-family:inherit; font-size:16px; padding:8px 10px; margin-bottom:7px}
+  /* Apple Music から選んだ曲の固定表示（曲名・アーティスト名は編集不可） */
+  .sf-fixed-title{font-size:15.5px; font-weight:900; line-height:1.45; margin:2px 0 3px; word-break:break-word}
+  .sf-fixed-artist{font-size:13px; color:var(--dim); line-height:1.45; margin:0 0 5px; word-break:break-word}
+  /* 曲モーダル内の「自分で追加」セクション */
+  .song-manual{border-top:1.5px dashed var(--border); margin-top:16px; padding-top:14px}
+  .song-manual h3{font-size:14.5px; font-weight:900; margin:0 0 4px}
+  .song-manual .field{margin-bottom:11px}
+  .song-manual-error{color:#d33; font-size:12.5px; margin:0 0 9px}
   .song-slot textarea{width:100%; max-width:100%; min-width:0; border:1px solid var(--border-soft); border-radius:10px; background:var(--surface); color:var(--text); font-family:inherit; font-size:16px; padding:9px 11px; resize:vertical; min-height:52px; line-height:1.6; margin-top:9px}
   .slot-actions{display:flex; gap:8px; margin-top:9px}
   /* dynamic entries */
@@ -1422,7 +1430,7 @@
 
         <section class="fcard" aria-label="好きな曲">
           <h2><span class="step">STEP 5</span>好きな曲</h2>
-          <p class="sub">選んだあとに曲名・アーティスト名の修正や、おすすめ理由を書けます。曲を長押しすると、そのままドラッグして順番を入れ替えられます（入れ替えた順番は保存され、プレビューにも反映されます）。</p>
+          <p class="sub">Apple Musicから選んだ曲は、曲名・アーティスト名を変更できません（Apple Musicで開いたときの情報とそろえるため）。おすすめ理由は選んだあとに書けます。検索で見つからない曲は、「曲を選ぶ」画面の下にある「自分で追加」から、ジャケット画像つきで登録できます。曲を長押しすると、そのままドラッグして順番を入れ替えられます（入れ替えた順番は保存され、プレビューにも反映されます）。</p>
           <p class="song-reorder-hint"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 5h.01M9 12h.01M9 19h.01M15 5h.01M15 12h.01M15 19h.01"/></svg><span>並び替え：曲を長押し → ドラッグして離す</span></p>
           <div id="songSlots"></div>
           <button type="button" class="btn-add" id="btnAddSong">＋ 曲を追加</button>
@@ -2542,8 +2550,23 @@
     <h2>曲を検索</h2>
     <input type="search" id="songQuery" placeholder="曲名・アーティスト名で検索" autocomplete="off" />
     <div id="songResults"></div>
-    <p class="m-note">探している曲が見つからないときは、検索欄に入力した曲名でそのまま登録できます。</p>
-    <button type="button" class="btn-add" id="btnManualSong" hidden>入力した曲名で登録する</button>
+    <div class="song-manual" id="songManual">
+      <h3>検索で見つからなかったら自分で追加</h3>
+      <p class="m-note" style="margin-top:0">Apple Musicにない曲は、ジャケット画像・歌手名・曲名を自分で入力して追加できます（この方法で追加した曲には、Apple Musicへのリンクは付きません）。</p>
+      <div class="field"><label>ジャケット画像（任意）</label>
+        <div class="img-pick">
+          <div class="img-thumb" id="manualSongThumb" style="width:58px;height:58px;border-radius:11px"><span style="font-size:11px">画像</span></div>
+          <label class="btn-file" for="manualSongFile">画像を選ぶ</label>
+          <input type="file" id="manualSongFile" accept="image/*" hidden />
+          <button type="button" class="btn-ghost-sm" id="btnManualSongImgClear" hidden>画像を外す</button>
+        </div>
+      </div>
+      <div class="field"><label>曲名</label><input type="text" id="manualSongTitle" placeholder="曲名" /></div>
+      <div class="field"><label>歌手名</label><input type="text" id="manualSongArtist" placeholder="アーティスト名" /></div>
+      <div class="field"><label>おすすめする理由（任意）</label><textarea id="manualSongReason" rows="2" placeholder="この曲のおすすめポイント"></textarea></div>
+      <p class="song-manual-error" id="manualSongError" hidden>曲名を入力してください。</p>
+      <button type="button" class="btn-add" id="btnManualSongAdd">この内容で追加する</button>
+    </div>
   </div>
 </div>
 
@@ -2979,6 +3002,17 @@
       : "♪";
     return '<div class="album-tile" style="' + albumStyle(s && s.hue != null ? s.hue : 320) + '">' + inner + '</div>';
   }
+  /* Apple Music の検索から選んだ曲かどうか。選んだ曲は、Apple Music で
+     開いたときの情報と食い違わないよう、曲名・アーティスト名を
+     編集できないようにする（2026-11-28 本人の希望）。
+     判定は src フィールド（新規データ）で、無い旧データは
+     Apple Music リンク（link）の有無で推定する：検索で選んだ曲は
+     必ず link が入り、手入力の曲は link が空のため、これで足りる。 */
+  function songIsApple(s){
+    if(!s) return false;
+    if(s.src) return s.src === "apple";
+    return !!s.link;
+  }
   function renderSongSlots(){
     var html = "";
     state.songs.forEach(function(s, i){
@@ -2997,8 +3031,12 @@
       } else {
         html += '<div class="song-filled">' + songTileHtml(s)
           + '<div class="sf-main">'
-          + '<input type="text" data-song-field="title" data-idx="' + i + '" value="' + esc(s.title) + '" placeholder="曲名" aria-label="曲名" />'
-          + '<input type="text" data-song-field="artist" data-idx="' + i + '" value="' + esc(s.artist) + '" placeholder="アーティスト名" aria-label="アーティスト名" />'
+          + (songIsApple(s)
+            /* Apple Music の曲は元データのまま固定表示（編集不可） */
+            ? '<p class="sf-fixed-title">' + esc(s.title) + '</p>'
+              + '<p class="sf-fixed-artist">' + esc(s.artist) + '</p>'
+            : '<input type="text" data-song-field="title" data-idx="' + i + '" value="' + esc(s.title) + '" placeholder="曲名" aria-label="曲名" />'
+              + '<input type="text" data-song-field="artist" data-idx="' + i + '" value="' + esc(s.artist) + '" placeholder="アーティスト名" aria-label="アーティスト名" />')
           + '</div></div>'
           + '<textarea data-song-reason="' + i + '" placeholder="おすすめする理由（任意）">' + esc(s.reason || "") + '</textarea>'
           + '<div class="slot-actions"><button type="button" class="btn-ghost-sm" data-song-pick="' + i + '">変更する</button>'
@@ -3179,10 +3217,33 @@
     /* ドラッグ中の画像のゴーストを防ぐ */
     c.addEventListener("dragstart", function(e){ e.preventDefault(); });
   })();
+  /* 「自分で追加」フォームで編集中のジャケット画像（data URL）。
+     追加が確定するまでは曲データには入れない。 */
+  var manualSongArtwork = "";
+  function syncManualSongThumb(){
+    $("manualSongThumb").innerHTML = manualSongArtwork
+      ? '<img src="' + esc(safeImgSrc(manualSongArtwork)) + '" alt="" />'
+      : '<span style="font-size:11px">画像</span>';
+    $("btnManualSongImgClear").hidden = !manualSongArtwork;
+  }
+  /* 手動追加フォームの初期化。対象スロットに手動追加の曲が入って
+     いるときは、その内容を下書きとして引き継ぐ（変更する導線）。 */
+  function resetManualSongForm(){
+    var cur = state.songs[songTarget];
+    var fromManual = cur && !songIsApple(cur);
+    manualSongArtwork = fromManual ? (cur.artwork || "") : "";
+    $("manualSongTitle").value = fromManual ? (cur.title || "") : "";
+    $("manualSongArtist").value = fromManual ? (cur.artist || "") : "";
+    $("manualSongReason").value = fromManual ? (cur.reason || "") : "";
+    $("manualSongError").hidden = true;
+    $("manualSongFile").value = "";
+    syncManualSongThumb();
+  }
   function openSongModal(idx){
     songTarget = idx;
     $("songModal").classList.add("open");
     $("songQuery").value = "";
+    resetManualSongForm();
     searchSongs("");
     setTimeout(function(){ $("songQuery").focus(); }, 50);
   }
@@ -3232,7 +3293,9 @@
   }
   function searchSongs(q){
     q = (q || "").trim();
-    $("btnManualSong").hidden = !q;
+    /* 検索語は「自分で追加」の曲名欄にも下書きとして引き継ぐ
+       （見つからなかったときに、そのまま手動追加へ進めるように） */
+    if(q && !$("manualSongTitle").value) $("manualSongTitle").value = q;
     if(!q){
       songSearchSeq++;
       songResultsCache = [];
@@ -3247,7 +3310,7 @@
       if(!alive()) return;
       songResultsCache = list;
       if(!list.length){
-        $("songResults").innerHTML = '<p class="m-note">見つかりませんでした。下のボタンから、入力した曲名でそのまま登録できます。</p>';
+        $("songResults").innerHTML = '<p class="m-note">見つかりませんでした。下の「自分で追加」から登録できます。</p>';
         return;
       }
       var html = "";
@@ -3265,7 +3328,7 @@
       if(!alive()) return;
       if(responded){ renderList([]); return; }
       songResultsCache = [];
-      $("songResults").innerHTML = '<p class="m-note">検索できませんでした。通信環境を確認してもう一度お試しください。下のボタンから、入力した曲名でも登録できます。</p>';
+      $("songResults").innerHTML = '<p class="m-note">検索できませんでした。通信環境を確認してもう一度お試しください。下の「自分で追加」から手動でも登録できます。</p>';
     }
     /* 第1手段: iTunes を fetch で取得 */
     function tryItunesFetch(){
@@ -4542,7 +4605,6 @@
   /* song modal */
   $("songQuery").addEventListener("input", function(){
     var v = this.value;
-    $("btnManualSong").hidden = !v.trim();
     if(songSearchTimer) clearTimeout(songSearchTimer);
     songSearchTimer = setTimeout(function(){ searchSongs(v); }, 350);
   });
@@ -4557,15 +4619,49 @@
       hue: songHue(c.trackName || ""),
       artwork: artworkLarge(c.artworkUrl100 || c.artworkUrl60 || ""),
       link: c.trackViewUrl || "",
+      src: "apple",
       reason: state.songs[songTarget] ? state.songs[songTarget].reason || "" : ""
     };
     $("songModal").classList.remove("open");
     renderSongSlots(); renderPreview();
   });
-  $("btnManualSong").addEventListener("click", function(){
-    var q = $("songQuery").value.trim();
-    if(!q) return;
-    state.songs[songTarget] = { title:q, artist:"", hue:320, artwork:"", link:"", reason: state.songs[songTarget] ? state.songs[songTarget].reason || "" : "" };
+  /* 「自分で追加」: ジャケット画像は既存の写真調整クロッパーで
+     正方形に切り抜いてから保持する（他の画像入力と同じ流れ）。 */
+  $("manualSongFile").addEventListener("change", function(){
+    var f = this.files && this.files[0];
+    var input = this;
+    if(!f) return;
+    readImage(f, function(url){
+      openImageCropper(url, { aw: 1, ah: 1, outW: 512, outH: 512 }, function(cropped){
+        if(!cropped) return;
+        manualSongArtwork = cropped;
+        syncManualSongThumb();
+      });
+      input.value = "";
+    });
+  });
+  $("btnManualSongImgClear").addEventListener("click", function(){
+    manualSongArtwork = "";
+    syncManualSongThumb();
+  });
+  $("btnManualSongAdd").addEventListener("click", function(){
+    var title = $("manualSongTitle").value.trim();
+    if(!title){
+      $("manualSongError").hidden = false;
+      $("manualSongTitle").focus();
+      return;
+    }
+    $("manualSongError").hidden = true;
+    var artist = $("manualSongArtist").value.trim();
+    state.songs[songTarget] = {
+      title: title,
+      artist: artist,
+      hue: songHue(title + " " + artist),
+      artwork: manualSongArtwork || "",
+      link: "",
+      src: "manual",
+      reason: $("manualSongReason").value
+    };
     $("songModal").classList.remove("open");
     renderSongSlots(); renderPreview();
   });
