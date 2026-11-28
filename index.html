@@ -5533,12 +5533,29 @@
     var hasOwnSheet = (typeof applyShareDataForProfile === "function") ? applyShareDataForProfile(profileId) : false;
     if(!hasOwnSheet){
       /* This person has no saved 布教シート yet: start from
-         the share page's own defaults (シンプル + the
-         thumbnail accent), NOT from the profile's design /
-         color — the two are chosen independently. */
-      spState.design = "simple";
-      spState.color = thumbAccentColor(profileSnapshot());
-      spState.colorPicked = false;
+         the profile's own saved design / color — the same
+         values the thumbnail generation falls back to for a
+         sheet-less profile (sheetThumbDataFor) — so opening
+         this page and saving without changing anything can
+         never silently restyle the thumbnail that was
+         already showing in the profile's design. A usable
+         profile color is marked as picked, because a saved
+         sheet's color only counts in thumbnail generation
+         when it was picked; with no usable profile color,
+         the member-color accent stays the default, exactly
+         like the thumbnail fallback. The two sides' saved
+         settings remain independent afterwards: choosing a
+         different design / color here never rewrites the
+         profile's own choice, and vice versa. */
+      spState.design = validThumbDesign(entry.data && entry.data.design) || "simple";
+      var profColor = validThumbColor(entry.data && entry.data.designColor);
+      if(profColor){
+        spState.color = profColor;
+        spState.colorPicked = true;
+      } else {
+        spState.color = thumbAccentColor(profileSnapshot());
+        spState.colorPicked = false;
+      }
       /* A sheet that has never been saved starts 非公開. */
       spState.visibility = "private";
       syncSheetVisibilityUI();
@@ -5546,8 +5563,10 @@
     }
     if(!spState.manual) fillSpFormFromProfile();
     if(!spState.colorPicked){
-      /* Share color default only: never inherit the profile's
-         design color (state.designColor). */
+      /* No color chosen on either side (a sheet-less profile
+         whose profile color was usable already arrived above
+         with it marked as picked, so it survives): the
+         member-color accent is the default. */
       spState.color = thumbAccentColor(profileSnapshot());
       var cp = $("spColorPick"); if(cp) cp.value = spState.color;
       var ct = $("spColorText"); if(ct) ct.value = spState.color;
@@ -7498,9 +7517,10 @@
      getSpData() applies on the share page: a manually edited
      sheet comes from its saved sp-* fields; otherwise the
      thumbnail's content is derived from the profile itself,
-     while its design / color come only from that person's
-     saved share data (or the share defaults) — never from the
-     profile's own design / color, which are independent. */
+     while its design / color come from that person's saved
+     share data when there is any, and otherwise fall back to
+     the profile's own saved design / designColor (the two
+     remain independent as saved settings). */
   function validThumbDesign(d){ return (d === "simple" || d === "check" || d === "site") ? d : null; }
   function validThumbColor(c){ return (typeof c === "string" && /^#[0-9a-f]{6}$/i.test(c)) ? c : null; }
   function sheetRowsFromSpFields(f){
@@ -7549,13 +7569,20 @@
     var pointsObj = (sd && sd.points) || {};
     order.forEach(function(t){ var tx = String(pointsObj[t] || "").trim(); if(tx) pts.push(t + "：" + tx); });
     var points = String(f["f-free"] || "").trim() || pts.join("\n");
-    /* Sheet design / color are independent of the profile's:
-       only the sheet's own saved choice counts here. With no
-       saved sheet, the thumbnail falls back to the share page's
-       defaults (シンプル + the thumbnail accent), never to
-       the profile's design / designColor. */
+    /* Sheet design / color stay independent of the profile's
+       as saved settings: when the person has a saved sheet,
+       its choices win here exactly as before and editing one
+       side never rewrites the other. Only when there is no
+       saved sheet at all does the thumbnail fall back to the
+       profile's own saved design / designColor, so a profile
+       shared before its sheet was ever made still gets a
+       thumbnail in the profile's design. When the profile has
+       no usable color either, the member-color accent remains
+       the last fallback. */
+    var hasSheet = !!sshare;
     var accent;
-    if(sshare && sshare.colorPicked && validThumbColor(sshare.color)) accent = sshare.color;
+    if(hasSheet && sshare.colorPicked && validThumbColor(sshare.color)) accent = sshare.color;
+    else if(!hasSheet && validThumbColor(sd && sd.designColor)) accent = sd.designColor;
     else accent = thumbAccentColor({ opts: (sd && sd.opts) || {} });
     return {
       name: String(f["f-name"] || "").trim(),
@@ -7564,7 +7591,8 @@
       points: points,
       img: (sd && sd.profileImg) ? String(sd.profileImg) : "",
       accent: accent,
-      design: validThumbDesign(sshare && sshare.design) || "simple"
+      design: hasSheet ? (validThumbDesign(sshare.design) || "simple")
+                       : (validThumbDesign(sd && sd.design) || "simple")
     };
   }
   /* Same shrink-to-fit as the share page (fitThumbName /
@@ -7634,10 +7662,11 @@
         profiles.forEach(function(en){
           var enShare = shareMap[en.id];
           var pmeta = [];
-          /* Sheet label follows the sheet's own design only
-             (independent of the profile's design); with no saved
-             sheet it matches the preview's default, シンプル. */
-          var pdesign = (enShare && enShare.design) ? enShare.design : "simple";
+          /* Sheet label follows the sheet's own design when a
+             sheet is saved; with no saved sheet it matches the
+             preview, which falls back to the profile's design. */
+          var pdesign = (enShare && enShare.design) ? enShare.design
+            : (validThumbDesign(en.data && en.data.design) || "simple");
           var pdl = profileDesignLabel(pdesign);
           if(pdl) pmeta.push("デザイン：" + esc(pdl));
           var ppoints = "";
