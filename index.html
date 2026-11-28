@@ -3188,8 +3188,12 @@
   }
   var songJsonpSeq = 0;
   function songItunesUrl(q, cbName){
+    /* media=music を付けると、iPhone / iPad の Safari では Apple 側が
+       musics:// スキームへ 301 リダイレクトしてしまい、fetch でも
+       JSONP でも取得できず「通信環境を確認…」エラーになる（実測で確認）。
+       entity=song だけでも結果は曲のみに絞られるため、media は付けない。 */
     var url = "https://itunes.apple.com/search?term=" + encodeURIComponent(q)
-      + "&country=JP&media=music&entity=song&limit=25&lang=ja_jp";
+      + "&country=JP&entity=song&limit=25&lang=ja_jp";
     return cbName ? url + "&callback=" + cbName : url;
   }
   /* fetch で JSON を取る（iTunes Search API は CORS 許可済み）。
